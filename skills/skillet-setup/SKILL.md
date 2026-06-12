@@ -73,9 +73,15 @@ ln -sfn "$DEST/<name>" "<agent-skills-dir>/<name>"
 Copy into the project root and make executable:
 
 ```bash
-cp "$BUNDLED/ralph-once/ralph-once.sh" "$BUNDLED/ralph-once/afk-ralph.sh" ./
-chmod +x ralph-once.sh afk-ralph.sh
+cp "$BUNDLED/ralph-once/ralph-once.sh" ./
+chmod +x ralph-once.sh
 touch progress.txt
+```
+
+`afk-ralph.sh` (autonomous Docker loop) is opt-in — install it ONLY if the user explicitly asks for the AFK loop:
+
+```bash
+cp "$BUNDLED/ralph-once/afk-ralph.sh" ./ && chmod +x afk-ralph.sh
 ```
 
 If the project has a `.gitignore`, do not ignore `progress.txt` — it is meant to be committed.

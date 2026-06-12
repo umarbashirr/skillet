@@ -18,6 +18,7 @@ npx github:umarbashirr/skillet
 │  ◼ Atlassian (Jira) MCP server
 │  ◼ gh CLI
 │  ◼ glab CLI
+│  ◻ afk-ralph.sh        autonomous Docker loop — opt-in, unchecked by default
 
 ◆  Which agents to install for? (detected ones pre-selected)
 │  ◼ Claude Code    ◼ Cursor    ◼ VS Code Copilot    ◼ Codex    ◼ Antigravity
@@ -52,7 +53,7 @@ Skills — canonical copy in `~/.agents/skills/` (or `./.agents/skills/` with `-
 - **to-prd** — conversation → PRD, published as a Jira subtask (label `prd`); posts the full Q&A conversation record as a comment on the story
 - **to-issues** — PRD → tracer-bullet Jira subtasks (label `ready-for-agent`)
 - **handoff** — compact the session into a handoff doc for the next agent; with story context, also posts a handoff comment on the story and a pause marker on the in-flight subtask
-- **ralph-once** — single human-in-the-loop TDD iteration over a Jira story: PO test cases → failing tests → commit → implement → commit → lint/format/typecheck/build, Jira comment per stage, draft PR when the last subtask is done (`PRD.md` fallback; plus `ralph-once.sh` / `afk-ralph.sh`)
+- **ralph-once** — single human-in-the-loop TDD iteration over a Jira story: PO test cases → failing tests → commit → implement → commit → lint/format/typecheck/build, Jira comment per stage, draft PR when the last subtask is done (`PRD.md` fallback; plus `ralph-once.sh`; `afk-ralph.sh` autonomous loop is opt-in: `--only afk-ralph` or check it in the menu)
 - **jira-ralph** — TDD loop over ready-for-agent Jira subtasks, ending in a draft PR
 
 System dependencies:

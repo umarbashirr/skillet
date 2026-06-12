@@ -26,9 +26,11 @@ const DEPS = [
   { value: 'jira-mcp', label: 'Atlassian (Jira) MCP server', hint: 'registered in every selected agent' },
   { value: 'gh', label: 'gh CLI', hint: 'GitHub CLI' },
   { value: 'glab', label: 'glab CLI', hint: 'GitLab CLI' },
+  { value: 'afk-ralph', label: 'afk-ralph.sh', hint: 'autonomous Docker loop — NOT selected by default' },
 ];
 const JIRA_SKILLS = new Set(['grill-me', 'grill-with-docs', 'to-prd', 'to-issues', 'handoff', 'ralph-once', 'jira-ralph']);
 const ALL = [...SKILLS.map((s) => s.value), ...DEPS.map((d) => d.value)];
+const DEFAULTS = ALL.filter((v) => v !== 'afk-ralph'); // afk loop is opt-in
 
 // Skills live canonically in .agents/skills (skills.sh convention) and are symlinked
 // into each selected agent. MCP is registered per agent in its own config format.
@@ -243,14 +245,14 @@ async function main() {
   // --- item selection ---
   let selected;
   if (args.yes || args.only) {
-    selected = (args.only ?? ALL).filter((v) => !args.skip.has(v));
+    selected = (args.only ?? DEFAULTS).filter((v) => !args.skip.has(v));
     const unknown = selected.filter((v) => !ALL.includes(v));
     if (unknown.length) bail(`Unknown items: ${unknown.join(', ')}`);
   } else {
     const picked = await p.multiselect({
       message: 'What to install? (all selected — uncheck to opt out)',
       options: [...SKILLS, ...DEPS],
-      initialValues: ALL.filter((v) => !args.skip.has(v)),
+      initialValues: DEFAULTS.filter((v) => !args.skip.has(v)),
       required: false,
     });
     if (p.isCancel(picked)) bail();
@@ -363,9 +365,13 @@ async function main() {
     installed.push(name);
   }
 
-  // ralph scripts → project root
-  if (installed.includes('ralph-once')) {
-    for (const f of ['ralph-once.sh', 'afk-ralph.sh']) {
+  // ralph scripts → project root (afk-ralph.sh is opt-in)
+  const ralphScripts = [
+    ...(installed.includes('ralph-once') ? ['ralph-once.sh'] : []),
+    ...(selected.includes('afk-ralph') ? ['afk-ralph.sh'] : []),
+  ];
+  if (ralphScripts.length) {
+    for (const f of ralphScripts) {
       const src = path.join(BUNDLED, 'ralph-once', f);
       const dst = path.join(process.cwd(), f);
       if (fs.existsSync(dst) && fs.readFileSync(dst, 'utf8') !== fs.readFileSync(src, 'utf8')) {
