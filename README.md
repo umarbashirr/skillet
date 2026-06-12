@@ -36,7 +36,7 @@ npx skills add umarbashirr/skillet@skillet-setup
 
 ## What it installs
 
-Skills (into `~/.claude/skills/` or `./.claude/skills/`):
+Skills — canonical copy in `~/.agents/skills/` (or `./.agents/skills/` with `--dest project`), symlinked into every detected agent (Claude Code, Cursor, Codex, OpenCode, Copilot, Gemini, Amp — skills.sh convention):
 
 - **grill-me** — relentless plan interview, seedable from a Jira ticket URL
 - **grill-with-docs** — grilling that maintains CONTEXT.md and ADRs inline, seedable from a Jira ticket URL

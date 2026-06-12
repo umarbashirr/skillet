@@ -26,6 +26,37 @@ const DEPS = [
 const JIRA_SKILLS = new Set(['grill-me', 'grill-with-docs', 'to-prd', 'to-issues', 'handoff', 'ralph-once', 'jira-ralph']);
 const ALL = [...SKILLS.map((s) => s.value), ...DEPS.map((d) => d.value)];
 
+// skills.sh convention: canonical copy in .agents/skills, symlinked into each agent's dir.
+// detect = config dir whose presence means the agent is installed; skillsDir = where it looks for skills.
+const AGENTS = [
+  { name: 'claude', detect: '.claude', skillsDir: ['.claude', 'skills'] },
+  { name: 'cursor', detect: '.cursor', skillsDir: ['.cursor', 'skills'] },
+  { name: 'codex', detect: '.codex', skillsDir: ['.codex', 'skills'] },
+  { name: 'opencode', detect: ['.config', 'opencode'], skillsDir: ['.config', 'opencode', 'skill'] },
+  { name: 'copilot', detect: '.copilot', skillsDir: ['.copilot', 'skills'] },
+  { name: 'gemini', detect: '.gemini', skillsDir: ['.gemini', 'skills'] },
+  { name: 'amp', detect: ['.config', 'amp'], skillsDir: ['.config', 'amp', 'skills'] },
+];
+
+function detectAgents(base) {
+  return AGENTS.filter((a) => fs.existsSync(path.join(base, ...[].concat(a.detect))));
+}
+
+// Symlink canonical skill dir into an agent's skills dir. Replaces stale symlinks;
+// replaces real dirs only when allowed (caller decided overwrite).
+function linkSkill(canonical, agentSkillsDir, name, overwrite) {
+  const target = path.join(agentSkillsDir, name);
+  fs.mkdirSync(agentSkillsDir, { recursive: true });
+  const stat = fs.lstatSync(target, { throwIfNoEntry: false });
+  if (stat) {
+    if (stat.isSymbolicLink()) fs.unlinkSync(target);
+    else if (overwrite) fs.rmSync(target, { recursive: true });
+    else return false;
+  }
+  fs.symlinkSync(canonical, target, 'dir');
+  return true;
+}
+
 function parseArgs(argv) {
   const args = { yes: false, only: null, skip: new Set(), domain: null, project: null, dest: null };
   for (let i = 0; i < argv.length; i++) {
@@ -110,18 +141,17 @@ async function main() {
     const d = await p.select({
       message: 'Where to install the skills?',
       options: [
-        { value: 'global', label: 'Global — ~/.claude/skills (every project)' },
-        { value: 'project', label: 'Project — ./.claude/skills (this repo only)' },
+        { value: 'global', label: 'Global — ~/.agents/skills, symlinked into every detected agent' },
+        { value: 'project', label: 'Project — ./.agents/skills (this repo only)' },
       ],
       initialValue: 'global',
     });
     if (p.isCancel(d)) bail();
     destChoice = d;
   }
-  const destDir =
-    destChoice === 'global'
-      ? path.join(os.homedir(), '.claude', 'skills')
-      : path.join(process.cwd(), '.claude', 'skills');
+  const base = destChoice === 'global' ? os.homedir() : process.cwd();
+  const destDir = path.join(base, '.agents', 'skills');
+  const agents = detectAgents(os.homedir()); // agents are detected from the home dir even in project mode
 
   // --- install skills ---
   const skillsToInstall = selected.filter((v) => SKILLS.some((s) => s.value === v));
@@ -130,8 +160,8 @@ async function main() {
 
   for (const name of skillsToInstall) {
     const target = path.join(destDir, name);
+    let overwrite = args.yes; // --yes overwrites; interactive asks
     if (fs.existsSync(path.join(target, 'SKILL.md'))) {
-      let overwrite = args.yes; // --yes overwrites; interactive asks
       if (!args.yes) {
         const ok = await p.confirm({ message: `${name} already exists in ${destDir} — overwrite?` });
         if (p.isCancel(ok)) bail();
@@ -153,6 +183,11 @@ async function main() {
     for (const f of fs.readdirSync(path.join(BUNDLED, name))) {
       if (f === 'SKILL.md.template') continue;
       fs.copyFileSync(path.join(BUNDLED, name, f), path.join(target, f));
+    }
+
+    // symlink the canonical copy into every detected agent (skills.sh convention)
+    for (const a of agents) {
+      linkSkill(target, path.join(base, ...a.skillsDir), name, overwrite || args.yes);
     }
     installed.push(name);
   }
@@ -187,6 +222,7 @@ async function main() {
   // --- summary ---
   const lines = [];
   if (installed.length) lines.push(`Skills → ${destDir}: ${installed.join(', ')}`);
+  if (installed.length) lines.push(`Symlinked into: ${agents.map((a) => a.name).join(', ') || 'no agents detected'}`);
   if (skipped.length) lines.push(`Skipped (already present): ${skipped.join(', ')}`);
   if (wantsJira) lines.push(`Jira: ${domain} / ${project}`);
   lines.push(...depResults);

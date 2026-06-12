@@ -29,7 +29,7 @@ Ask the user (one question, two values, with defaults):
 - **Jira domain** (default: `xcelore.atlassian.net`)
 - **Jira project key** (default: `XW`)
 
-Also ask: install skills **globally** (`~/.claude/skills/` — available in every project) or **project-local** (`./.claude/skills/`)? Default: global.
+Also ask: install skills **globally** (`~/.agents/skills/` — available in every project) or **project-local** (`./.agents/skills/`)? Default: global.
 
 ## Step 2: Install the skills
 
@@ -50,6 +50,24 @@ cp "$BUNDLED/grill-with-docs/CONTEXT-FORMAT.md" "$BUNDLED/grill-with-docs/ADR-FO
 ```
 
 Do NOT skip a skill because a directory already exists — show the user a diff and ask overwrite/skip per conflict.
+
+Then symlink each installed skill into every agent detected on the machine (skills.sh convention). Detect by config dir; link `$DEST/<name>` into the agent's skills dir:
+
+| Agent | Detect | Skills dir |
+|-------|--------|-----------|
+| Claude Code | `~/.claude` | `~/.claude/skills/` |
+| Cursor | `~/.cursor` | `~/.cursor/skills/` |
+| Codex | `~/.codex` | `~/.codex/skills/` |
+| OpenCode | `~/.config/opencode` | `~/.config/opencode/skill/` |
+| Copilot | `~/.copilot` | `~/.copilot/skills/` |
+| Gemini | `~/.gemini` | `~/.gemini/skills/` |
+| Amp | `~/.config/amp` | `~/.config/amp/skills/` |
+
+```bash
+ln -sfn "$DEST/<name>" "<agent-skills-dir>/<name>"
+```
+
+(Project-local install: link into the project-local equivalents, e.g. `./.claude/skills/`.) If the agent dir already holds a REAL directory with that name, ask before replacing it.
 
 ## Step 3: Install Ralph scripts into the project
 
