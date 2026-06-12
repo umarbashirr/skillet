@@ -109,9 +109,13 @@ function linkSkill(canonical, agentSkillsDir, name, overwrite) {
   return true;
 }
 
+// npm-installed CLIs (claude, codex, gh…) are .cmd shims on Windows — Node can
+// only spawn those through a shell, hence shell: true on win32 everywhere.
+const WINSHELL = process.platform === 'win32';
+
 function cmdOut(cmd, cmdArgs) {
   try {
-    return String(execFileSync(cmd, cmdArgs, { stdio: 'pipe' }));
+    return String(execFileSync(cmd, cmdArgs, { stdio: 'pipe', shell: WINSHELL }));
   } catch (e) {
     return `${e.stdout ?? ''}${e.stderr ?? ''}`;
   }
@@ -119,7 +123,7 @@ function cmdOut(cmd, cmdArgs) {
 
 function cmdOk(cmd, cmdArgs) {
   try {
-    execFileSync(cmd, cmdArgs, { stdio: 'pipe' });
+    execFileSync(cmd, cmdArgs, { stdio: 'pipe', shell: WINSHELL });
     return true;
   } catch {
     return false;
@@ -170,7 +174,7 @@ const MCP_REGISTER = {
   claude(home) {
     if (!hasCmd('claude')) return 'claude CLI not found — npm i -g @anthropic-ai/claude-code, then re-run';
     if (!/atlassian/i.test(cmdOut('claude', ['mcp', 'list']))) {
-      execFileSync('claude', ['mcp', 'add', '--transport', 'http', 'atlassian', ATL_HTTP, '--scope', 'user'], { stdio: 'pipe' });
+      execFileSync('claude', ['mcp', 'add', '--transport', 'http', 'atlassian', ATL_HTTP, '--scope', 'user'], { stdio: 'pipe', shell: WINSHELL });
     }
     return null;
   },
@@ -252,7 +256,7 @@ async function ensureAuth({ label, verify, login, steps, yes }) {
       const go = await p.confirm({ message: `${label} not authenticated. Run \`${login[0]} ${login[1].join(' ')}\` now?` });
       if (p.isCancel(go)) bail();
       if (go) {
-        spawnSync(login[0], login[1], { stdio: 'inherit' });
+        spawnSync(login[0], login[1], { stdio: 'inherit', shell: WINSHELL });
         continue; // re-verify
       }
       return `${label}: SKIPPED — ${steps}`;
@@ -455,7 +459,7 @@ async function main() {
       ['choco', ['install', 'gh', '-y']],
     ],
     glab: [
-      ['winget', ['install', 'glab', '--accept-source-agreements', '--accept-package-agreements']],
+      ['winget', ['install', '-e', '--id', 'GLab.GLab', '--accept-source-agreements', '--accept-package-agreements']],
       ['scoop', ['install', 'glab']],
       ['choco', ['install', 'glab', '-y']],
     ],
@@ -482,13 +486,21 @@ async function main() {
     let ok = false;
     let manual;
     if (process.platform === 'win32') {
-      manual = dep === 'gh' ? 'winget install --id GitHub.cli -e' : 'winget install glab';
+      manual = dep === 'gh' ? 'winget install --id GitHub.cli -e' : 'winget install -e --id GLab.GLab';
+      let tried = 0;
+      let lastErr = '';
       for (const [tool, argv] of WIN_INSTALL[dep]) {
         if (!hasCmd(tool)) continue;
-        if (spawnSync(tool, argv, { stdio: 'pipe', shell: true }).status === 0) {
+        tried++;
+        const r = spawnSync(tool, argv, { stdio: 'pipe', shell: true });
+        if (r.status === 0) {
           ok = true;
           break;
         }
+        lastErr = `${r.stdout ?? ''}${r.stderr ?? ''}`.trim().split('\n').slice(-3).join(' ');
+      }
+      if (!ok) {
+        manual = tried === 0 ? `no winget/scoop/choco found — install one, then: ${manual}` : `${manual}${lastErr ? ` (last error: ${lastErr})` : ''}`;
       }
     } else {
       manual = `bash ${DEPS_SCRIPT} --${dep}`;
