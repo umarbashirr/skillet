@@ -3,7 +3,7 @@
 One command to install the whole skillet agent workflow. Everything is pre-selected — uncheck what you don't want.
 
 ```bash
-npx skillet-cli
+npx github:umarbashirr/skillet
 ```
 
 ```
@@ -22,15 +22,15 @@ npx skillet-cli
 Non-interactive:
 
 ```bash
-npx skillet-cli --yes                          # everything, defaults
-npx skillet-cli --yes --skip glab,handoff      # opt out of items
-npx skillet-cli --only grill-me,to-prd --jira-project AB
+npx github:umarbashirr/skillet --yes                          # everything, defaults
+npx github:umarbashirr/skillet --yes --skip glab,handoff      # opt out of items
+npx github:umarbashirr/skillet --only grill-me,to-prd --jira-project AB
 ```
 
 Alternative, skill-driven install (no Node needed):
 
 ```bash
-npx skills add <owner>/skillet@skillet-setup
+npx skills add umarbashirr/skillet@skillet-setup
 # then in Claude Code: /skillet-setup
 ```
 
