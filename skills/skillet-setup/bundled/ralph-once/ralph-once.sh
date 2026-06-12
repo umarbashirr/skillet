@@ -1,10 +1,16 @@
 #!/bin/bash
-# Ralph (human-in-the-loop): one iteration per invocation.
+# Ralph (human-in-the-loop): one TDD iteration per invocation.
+# Usage: ./ralph-once.sh [JIRA-STORY-KEY]
+# The story key is remembered in .ralph-story; PRD.md mode runs when neither exists.
 # Source: Matt Pocock, https://www.aihero.dev/getting-started-with-ralph
 
-claude --permission-mode acceptEdits "@PRD.md @progress.txt \
-1. Read the PRD and progress file. \
-2. Find the next incomplete task and implement it. \
-3. Commit your changes. \
-4. Update progress.txt with what you did. \
-ONLY DO ONE TASK AT A TIME."
+if [ -n "$1" ]; then
+  echo "$1" > .ralph-story
+fi
+STORY=$(cat .ralph-story 2>/dev/null)
+
+if [ -n "$STORY" ]; then
+  claude --permission-mode acceptEdits "/ralph-once $STORY"
+else
+  claude --permission-mode acceptEdits "/ralph-once"
+fi

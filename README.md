@@ -13,7 +13,7 @@ npx github:umarbashirr/skillet
 │  ◼ to-prd              conversation → PRD as Jira subtask
 │  ◼ to-issues           PRD → ready-for-agent Jira subtasks
 │  ◼ handoff             compact session into handoff doc
-│  ◼ ralph-once          single Ralph iteration + loop scripts
+│  ◼ ralph-once          single Jira TDD Ralph iteration + loop scripts
 │  ◼ jira-ralph          TDD loop over Jira subtasks → draft PR
 │  ◼ Atlassian (Jira) MCP server
 │  ◼ glab CLI
@@ -43,7 +43,7 @@ Skills (into `~/.claude/skills/` or `./.claude/skills/`):
 - **to-prd** — conversation → PRD, published as a Jira subtask (label `prd`)
 - **to-issues** — PRD → tracer-bullet Jira subtasks (label `ready-for-agent`)
 - **handoff** — compact the session into a handoff doc for the next agent
-- **ralph-once** — single human-in-the-loop Ralph iteration over `PRD.md` (plus `ralph-once.sh` / `afk-ralph.sh`)
+- **ralph-once** — single human-in-the-loop TDD iteration over a Jira story: PO test cases → failing tests → commit → implement → commit → lint/format/typecheck/build, Jira comment per stage (`PRD.md` fallback; plus `ralph-once.sh` / `afk-ralph.sh`)
 - **jira-ralph** — TDD loop over ready-for-agent Jira subtasks, ending in a draft PR
 
 System dependencies:

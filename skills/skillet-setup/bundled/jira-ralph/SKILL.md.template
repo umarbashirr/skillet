@@ -226,7 +226,37 @@ pnpm test 2>&1 | tail -20
 
 If any previously-passing tests now fail (regression), fix them before proceeding. Do not count regression fixes against the 5-iteration cap.
 
-### 5k. Transition to Done
+### 5k. Quality Gates
+
+Detect the project's commands (package.json scripts, Makefile, CI config) and run ALL that exist, in this order:
+
+1. **Lint** — e.g. `pnpm lint`
+2. **Format** — e.g. `pnpm format` (scoped to changed files)
+3. **Type check** — e.g. `pnpm typecheck` / `tsc --noEmit`
+4. **Build** — e.g. `pnpm build`
+
+Fix every failure. If fixes changed files:
+
+```bash
+git add -A
+git commit -m "chore: quality gates for <SUBTASK_KEY> (lint, format, typecheck, build)"
+```
+
+Re-run the full test suite once more after fixes — gates must not break tests.
+
+Comment on Jira:
+
+```
+mcp__plugin_atlassian_atlassian__addCommentToJiraIssue(
+  cloudId: "{{JIRA_DOMAIN}}",
+  issueIdOrKey: "<SUBTASK_KEY>",
+  body: "✅ Quality gates passed: lint ✔ format ✔ typecheck ✔ build ✔"
+)
+```
+
+If a gate cannot pass after reasonable fixes, treat it as a failure → **Step 5h (Halt)**.
+
+### 5l. Transition to Done
 
 ```
 mcp__plugin_atlassian_atlassian__transitionJiraIssue(
@@ -236,13 +266,13 @@ mcp__plugin_atlassian_atlassian__transitionJiraIssue(
 )
 ```
 
-### 5l. Comment: Complete
+### 5m. Comment: Complete
 
 ```
 mcp__plugin_atlassian_atlassian__addCommentToJiraIssue(
   cloudId: "{{JIRA_DOMAIN}}",
   issueIdOrKey: "<SUBTASK_KEY>",
-  body: "✅ Implementation complete. Tests passing.\nCommits:\n- test: write failing tests for <SUBTASK_KEY>\n- feat: implement <SUBTASK_KEY>"
+  body: "✅ Implementation complete. Tests, lint, format, typecheck, build all passing.\nCommits:\n- test: write failing tests for <SUBTASK_KEY>\n- feat: implement <SUBTASK_KEY>\n- chore: quality gates (if any)"
 )
 ```
 

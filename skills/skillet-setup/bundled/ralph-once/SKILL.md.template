@@ -1,47 +1,233 @@
 ---
 name: ralph-once
-description: Run a single iteration of the Ralph loop — read PRD.md and progress.txt, implement exactly one incomplete task, commit, and record progress. Use when user says "ralph once", wants one human-in-the-loop iteration of the Ralph technique, or wants to step through a PRD task-by-task.
+description: Run a single TDD iteration of the Ralph loop over a Jira story — pick the next To Do subtask, write tests from the PO-listed test cases (adding any the PO missed, or deriving the full set if the PO wrote none), commit, implement until tests and acceptance criteria pass, commit, then run lint/format/type-check/build gates — commenting on Jira at every stage. Falls back to classic PRD.md mode when no Jira key is given. Invoke with /ralph-once [STORY-KEY]
 ---
 
-# Ralph Once — Single Human-in-the-Loop Iteration
+# Ralph Once — Single TDD Iteration over a Jira Story
 
-One iteration of the Ralph Wiggum technique (Matt Pocock / aihero.dev): persistent iteration over a PRD until done, one task at a time, with a human watching between iterations.
+One iteration of the Ralph technique (Matt Pocock / aihero.dev), adapted to a Jira-driven TDD flow: exactly ONE subtask per invocation, tests before code, a Jira comment at every stage so the PO can follow along, and quality gates before the subtask is marked Done.
 
-## Preconditions
+Do EXACTLY ONE subtask. Not two. Not "one and a quick fix". One.
 
-1. `PRD.md` must exist in the project root. If missing, stop and tell the user:
-   > "No PRD.md found. Generate one first (e.g. via /to-prd or plan mode), save it as PRD.md, then re-run /ralph-once."
-2. `progress.txt` must exist. If missing, create it empty: `touch progress.txt`
-3. Working tree should be clean. If there are uncommitted changes, ask the user before proceeding.
+## Jira Configuration
 
-## The Iteration
+- Domain: `{{JIRA_DOMAIN}}`
+- Project: `{{JIRA_PROJECT}}`
+- Status transitions: `To Do` → `In Progress` → `Done`
+- On failure: add label `blocked`, comment the reason, halt
 
-Do EXACTLY ONE task. Not two. Not "one and a quick fix". One.
+## Step 0: Resolve Mode
 
-1. Read `PRD.md` and `progress.txt`.
-2. Compare them: find the highest-priority task in the PRD not yet recorded as done in `progress.txt`.
-3. State which task you picked and why, then implement it.
-4. Run the project's tests and type checks. Fix failures caused by your change.
-5. Commit your changes with a conventional commit message referencing the task.
-6. Append to `progress.txt`: date, task name, what you did, anything the next iteration should know.
+1. If the ARGUMENTS contain a Jira issue key (`{{JIRA_PROJECT}}-123`) or a Jira URL, that is `STORY_KEY`. Remember it for future iterations: `echo "<STORY_KEY>" > .ralph-story`
+2. Else if `.ralph-story` exists, `STORY_KEY` is its content — Jira mode.
+3. Else if `PRD.md` exists, run **PRD Fallback Mode** (bottom of this file).
+4. Else stop:
+   > "No Jira story and no PRD.md. Run `/ralph-once {{JIRA_PROJECT}}-123` or create a PRD.md first."
+
+Ensure `progress.txt` exists (`touch progress.txt`). Working tree should be clean — if not, ask the user before proceeding.
+
+## Step 1: Pick ONE Subtask
+
+Fetch the parent story:
+
+```
+mcp__plugin_atlassian_atlassian__getJiraIssue(
+  cloudId: "{{JIRA_DOMAIN}}",
+  issueIdOrKey: "<STORY_KEY>"
+)
+```
+
+Fetch its open subtasks:
+
+```
+mcp__plugin_atlassian_atlassian__searchJiraIssuesUsingJql(
+  cloudId: "{{JIRA_DOMAIN}}",
+  jql: "project = {{JIRA_PROJECT}} AND parent = <STORY_KEY> AND status = \"To Do\" ORDER BY created ASC",
+  fields: ["summary", "description", "status", "labels", "key"]
+)
+```
+
+- If no subtasks remain → go to **Completion Check**.
+- Otherwise take the FIRST subtask only. That is `SUBTASK_KEY` for this iteration.
+
+State which subtask you picked and why before touching anything.
+
+## Step 2: Stage 1 — Pick Up
+
+Transition to In Progress and announce on Jira:
+
+```
+mcp__plugin_atlassian_atlassian__transitionJiraIssue(
+  cloudId: "{{JIRA_DOMAIN}}",
+  issueIdOrKey: "<SUBTASK_KEY>",
+  transition: "In Progress"
+)
+
+mcp__plugin_atlassian_atlassian__addCommentToJiraIssue(
+  cloudId: "{{JIRA_DOMAIN}}",
+  issueIdOrKey: "<SUBTASK_KEY>",
+  body: "🔄 Stage 1/5 — picked up by agent (ralph-once). Extracting test cases and writing failing tests next."
+)
+```
+
+## Step 3: Stage 2 — Tests First
+
+Read the subtask description AND the parent story description/acceptance criteria thoroughly.
+
+**Extract PO-written test cases:**
+- Scan both the subtask and the parent story for test cases the PO listed in any form: numbered lists, Given/When/Then, "should…" bullets, scenario tables, acceptance criteria.
+- **PO listed test cases** → you MUST cover ALL of them, one test per case, named after the case. Then add any cases the PO missed: edge cases, failure paths, boundary values, security constraints.
+- **PO listed none** → derive the full test set yourself from your understanding of the subtask, the parent story, and the codebase. Cover the happy path, failure paths, and edge cases.
+
+Write the test file(s) following project conventions. Do NOT write implementation code yet.
+
+Run the tests and confirm they FAIL (assertions fail — compile errors must be fixed first; fixing those does not count as an iteration).
+
+Commit:
+
+```bash
+git add <test-files>
+git commit -m "test: failing tests for <SUBTASK_KEY> - <short summary>"
+```
+
+Comment on Jira:
+
+```
+mcp__plugin_atlassian_atlassian__addCommentToJiraIssue(
+  cloudId: "{{JIRA_DOMAIN}}",
+  issueIdOrKey: "<SUBTASK_KEY>",
+  body: "✅ Stage 2/5 — failing tests committed.\nPO cases covered: {list by name, or 'none provided — full set derived by agent'}\nAgent-added cases: {list}\nCommit: {hash} Now implementing."
+)
+```
+
+## Step 4: Stage 3 — Feature
+
+Implement the minimal code that makes all tests pass. Follow project conventions (CLAUDE.md if present).
+
+Run the tests. If they fail:
+- Read the failure, fix the IMPLEMENTATION (never the tests), re-run.
+- Max 5 fix iterations — past that, go to **Halt on Failure**.
+
+When tests pass, re-read the acceptance criteria and verify each one is actually met by the code (not just by the tests). If a criterion is unmet, write a test for it first, then implement — same rules.
+
+Run the FULL test suite; fix any regressions (regression fixes don't count against the 5-iteration cap).
+
+Commit:
+
+```bash
+git add <implementation-files>
+git commit -m "feat: implement <SUBTASK_KEY> - <short summary>"
+```
+
+Comment on Jira:
+
+```
+mcp__plugin_atlassian_atlassian__addCommentToJiraIssue(
+  cloudId: "{{JIRA_DOMAIN}}",
+  issueIdOrKey: "<SUBTASK_KEY>",
+  body: "✅ Stage 3/5 — implementation complete, all tests green, acceptance criteria verified.\nCommit: {hash} Running quality gates next."
+)
+```
+
+## Step 5: Stage 4 — Quality Gates
+
+Detect the project's commands (package.json scripts, Makefile, CI config) and run ALL that exist, in this order:
+
+1. **Lint** — e.g. `pnpm lint` / `npm run lint`
+2. **Format** — e.g. `pnpm format` / `prettier --write .` (scoped to changed files)
+3. **Type check** — e.g. `pnpm typecheck` / `tsc --noEmit`
+4. **Build** — e.g. `pnpm build`
+
+Fix every failure. If fixes changed files:
+
+```bash
+git add -A
+git commit -m "chore: quality gates for <SUBTASK_KEY> (lint, format, typecheck, build)"
+```
+
+Re-run the full test suite once more after fixes — gates must not break tests.
+
+Comment on Jira:
+
+```
+mcp__plugin_atlassian_atlassian__addCommentToJiraIssue(
+  cloudId: "{{JIRA_DOMAIN}}",
+  issueIdOrKey: "<SUBTASK_KEY>",
+  body: "✅ Stage 4/5 — quality gates passed: lint ✔ format ✔ typecheck ✔ build ✔"
+)
+```
+
+If a gate cannot pass after reasonable fixes → **Halt on Failure**.
+
+## Step 6: Stage 5 — Done
+
+Transition and final comment:
+
+```
+mcp__plugin_atlassian_atlassian__transitionJiraIssue(
+  cloudId: "{{JIRA_DOMAIN}}",
+  issueIdOrKey: "<SUBTASK_KEY>",
+  transition: "Done"
+)
+
+mcp__plugin_atlassian_atlassian__addCommentToJiraIssue(
+  cloudId: "{{JIRA_DOMAIN}}",
+  issueIdOrKey: "<SUBTASK_KEY>",
+  body: "🏁 Stage 5/5 — done.\nCommits:\n- test: failing tests for <SUBTASK_KEY>\n- feat: implement <SUBTASK_KEY>\n- chore: quality gates (if any)\nTests, acceptance criteria, lint, format, typecheck, build: all passing."
+)
+```
+
+Append to `progress.txt`: date, subtask key + name, what you did, anything the next iteration should know.
+
+## Halt on Failure
+
+Add label `blocked` and comment the reason with the last failure output:
+
+```
+mcp__plugin_atlassian_atlassian__editJiraIssue(
+  cloudId: "{{JIRA_DOMAIN}}",
+  issueIdOrKey: "<SUBTASK_KEY>",
+  fields: { labels: [<existing labels>, "blocked"] }
+)
+
+mcp__plugin_atlassian_atlassian__addCommentToJiraIssue(
+  cloudId: "{{JIRA_DOMAIN}}",
+  issueIdOrKey: "<SUBTASK_KEY>",
+  body: "🚫 Agent halted at stage {N}.\n\nLast failure output:\n{paste}\n\nManual review required."
+)
+```
+
+Transition back to `To Do`. Stop — do not pick another subtask. Tell the user what failed and where.
 
 ## Completion Check
 
-If every task in the PRD is already done, output:
+If no `To Do` subtasks remain under the story, comment on the STORY:
+
+```
+mcp__plugin_atlassian_atlassian__addCommentToJiraIssue(
+  cloudId: "{{JIRA_DOMAIN}}",
+  issueIdOrKey: "<STORY_KEY>",
+  body: "🏁 All subtasks complete (ralph-once loop). Ready for review."
+)
+```
+
+Then output:
 
 ```
 <promise>COMPLETE</promise>
 ```
 
-and tell the user the PRD is complete — do not invent new work.
+and tell the user the story is complete — do not invent new work.
 
 ## After the Iteration
 
-Stop. Summarise what was done and what the next task will be. The user decides whether to run /ralph-once again, switch to the AFK loop (`./afk-ralph.sh N`), or intervene.
+Stop. Summarise what was done and which subtask is next. The user decides whether to run `/ralph-once` again, switch to the AFK loop (`./afk-ralph.sh N`), or intervene.
+
+## PRD Fallback Mode (no Jira key)
+
+Same discipline, no Jira: read `PRD.md` + `progress.txt`, pick the highest-priority incomplete task, write failing tests first (derive cases from the PRD), commit `test:`, implement until green, commit `feat:`, run the quality gates (lint, format, typecheck, build), commit `chore:` if needed, append to `progress.txt`. If every PRD task is done, output `<promise>COMPLETE</promise>`.
 
 ## Companion Scripts
 
-The setup skill installs two shell scripts in the project root for running Ralph outside an interactive session:
-
-- `ralph-once.sh` — same single iteration via `claude --permission-mode acceptEdits`
-- `afk-ralph.sh <iterations>` — autonomous loop in a Docker sandbox, exits early on `<promise>COMPLETE</promise>`
+- `ralph-once.sh [STORY-KEY]` — same single iteration via `claude --permission-mode acceptEdits`; remembers the key in `.ralph-story`
+- `afk-ralph.sh <iterations> [STORY-KEY]` — autonomous loop in a Docker sandbox, exits early on `<promise>COMPLETE</promise>`

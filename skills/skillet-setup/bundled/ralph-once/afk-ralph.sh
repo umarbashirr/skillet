@@ -1,28 +1,32 @@
 #!/bin/bash
-# Ralph (AFK): N autonomous iterations in a Docker sandbox.
+# Ralph (AFK): N autonomous TDD iterations in a Docker sandbox.
+# Usage: ./afk-ralph.sh <iterations> [JIRA-STORY-KEY]
 # Requires Docker Desktop 4.50+ (`docker sandbox`).
+# The story key is remembered in .ralph-story; PRD.md mode runs when neither exists.
 # Source: Matt Pocock, https://www.aihero.dev/getting-started-with-ralph
 set -e
 
 if [ -z "$1" ]; then
-  echo "Usage: $0 <iterations>"
+  echo "Usage: $0 <iterations> [JIRA-STORY-KEY]"
   exit 1
 fi
 
+if [ -n "$2" ]; then
+  echo "$2" > .ralph-story
+fi
+STORY=$(cat .ralph-story 2>/dev/null)
+
 for ((i=1; i<=$1; i++)); do
-  result=$(docker sandbox run claude --permission-mode acceptEdits -p "@PRD.md @progress.txt \
-  1. Find the highest-priority task and implement it. \
-  2. Run your tests and type checks. \
-  3. Update the PRD with what was done. \
-  4. Append your progress to progress.txt. \
-  5. Commit your changes. \
-  ONLY WORK ON A SINGLE TASK. \
-  If the PRD is complete, output <promise>COMPLETE</promise>.")
+  if [ -n "$STORY" ]; then
+    result=$(docker sandbox run claude --permission-mode acceptEdits -p "/ralph-once $STORY")
+  else
+    result=$(docker sandbox run claude --permission-mode acceptEdits -p "/ralph-once")
+  fi
 
   echo "$result"
 
   if [[ "$result" == *"<promise>COMPLETE</promise>"* ]]; then
-    echo "PRD complete after $i iterations."
+    echo "Story complete after $i iterations."
     exit 0
   fi
 done

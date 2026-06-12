@@ -16,14 +16,14 @@ const SKILLS = [
   { value: 'to-prd', label: 'to-prd', hint: 'conversation → PRD as Jira subtask' },
   { value: 'to-issues', label: 'to-issues', hint: 'PRD → ready-for-agent Jira subtasks' },
   { value: 'handoff', label: 'handoff', hint: 'compact session into handoff doc' },
-  { value: 'ralph-once', label: 'ralph-once', hint: 'single Ralph iteration + loop scripts' },
+  { value: 'ralph-once', label: 'ralph-once', hint: 'single Jira TDD Ralph iteration + loop scripts' },
   { value: 'jira-ralph', label: 'jira-ralph', hint: 'TDD loop over Jira subtasks → draft PR' },
 ];
 const DEPS = [
   { value: 'jira-mcp', label: 'Atlassian (Jira) MCP server', hint: 'claude mcp add atlassian' },
   { value: 'glab', label: 'glab CLI', hint: 'GitLab CLI' },
 ];
-const JIRA_SKILLS = new Set(['grill-me', 'grill-with-docs', 'to-prd', 'to-issues', 'jira-ralph']);
+const JIRA_SKILLS = new Set(['grill-me', 'grill-with-docs', 'to-prd', 'to-issues', 'ralph-once', 'jira-ralph']);
 const ALL = [...SKILLS.map((s) => s.value), ...DEPS.map((d) => d.value)];
 
 function parseArgs(argv) {
