@@ -1,6 +1,6 @@
 ---
 name: ralph-once
-description: Run a single TDD iteration of the Ralph loop over a Jira story — pick the next To Do subtask, write tests from the PO-listed test cases (adding any the PO missed, or deriving the full set if the PO wrote none), commit, implement until tests and acceptance criteria pass, commit, then run lint/format/type-check/build gates — commenting on Jira at every stage. Falls back to classic PRD.md mode when no Jira key is given. Invoke with /ralph-once [STORY-KEY]
+description: Run a single TDD iteration of the Ralph loop over a Jira story — pick the next To Do subtask, write tests from the PO-listed test cases (adding any the PO missed, or deriving the full set if the PO wrote none), commit, implement until tests and acceptance criteria pass, commit, then run lint/format/type-check/build gates — commenting on Jira at every stage. When the last subtask is done, pushes the branch and opens a draft PR. Falls back to classic PRD.md mode when no Jira key is given. Invoke with /ralph-once [STORY-KEY]
 ---
 
 # Ralph Once — Single TDD Iteration over a Jira Story
@@ -51,6 +51,20 @@ mcp__plugin_atlassian_atlassian__searchJiraIssuesUsingJql(
 - Otherwise take the FIRST subtask only. That is `SUBTASK_KEY` for this iteration.
 
 State which subtask you picked and why before touching anything.
+
+## Step 1.5: Prepare Git Branch
+
+All iterations for one story share one branch: `feat/<STORY_KEY>-<slug>` (slug from the story summary — lowercase, hyphens, max 40 chars).
+
+```bash
+git fetch origin
+git rev-parse --verify feat/<STORY_KEY>-<slug> 2>/dev/null || \
+  (git checkout develop && git pull origin develop && git checkout -b feat/<STORY_KEY>-<slug>)
+git checkout feat/<STORY_KEY>-<slug>
+git pull origin feat/<STORY_KEY>-<slug> 2>/dev/null || true
+```
+
+(If the repo has no `develop`, branch from the default branch instead.)
 
 ## Step 2: Stage 1 — Pick Up
 
@@ -177,7 +191,15 @@ mcp__plugin_atlassian_atlassian__addCommentToJiraIssue(
 )
 ```
 
+Push the branch so progress survives between iterations:
+
+```bash
+git push -u origin feat/<STORY_KEY>-<slug>
+```
+
 Append to `progress.txt`: date, subtask key + name, what you did, anything the next iteration should know.
+
+Then re-run the subtask query from Step 1 — if no `To Do` subtasks remain, continue straight into the **Completion Check** (draft PR) before stopping.
 
 ## Halt on Failure
 
@@ -199,25 +221,62 @@ mcp__plugin_atlassian_atlassian__addCommentToJiraIssue(
 
 Transition back to `To Do`. Stop — do not pick another subtask. Tell the user what failed and where.
 
-## Completion Check
+## Completion Check — Final Stage: Draft PR
 
-If no `To Do` subtasks remain under the story, comment on the STORY:
+If no `To Do` subtasks remain under the story:
+
+1. Push the branch:
+
+```bash
+git push -u origin feat/<STORY_KEY>-<slug>
+```
+
+2. Create a draft PR (skip if one already exists for this branch — `gh pr view` to check):
+
+```bash
+gh pr create \
+  --title "<STORY_KEY>: <story summary>" \
+  --body "$(cat <<'EOF'
+## Jira Story
+https://{{JIRA_DOMAIN}}/browse/<STORY_KEY>
+
+## Subtasks completed
+<list each SUBTASK_KEY with link and one-line summary>
+
+## Test plan
+- TDD: every subtask started from failing tests (PO cases + agent-added)
+- Full test suite green, no regressions
+- Quality gates passed: lint, format, typecheck, build
+
+## Notes
+Draft PR — review and promote to ready when satisfied.
+
+🤖 Implemented via ralph-once TDD loop
+EOF
+)" \
+  --base develop \
+  --draft
+```
+
+(Use `glab mr create --draft` on GitLab; `--base` = default branch if no `develop`.)
+
+3. Comment on the STORY with the PR URL:
 
 ```
 mcp__plugin_atlassian_atlassian__addCommentToJiraIssue(
   cloudId: "{{JIRA_DOMAIN}}",
   issueIdOrKey: "<STORY_KEY>",
-  body: "🏁 All subtasks complete (ralph-once loop). Ready for review."
+  body: "🏁 All subtasks complete (ralph-once loop). Draft PR: <url> — ready for review."
 )
 ```
 
-Then output:
+4. Then output:
 
 ```
 <promise>COMPLETE</promise>
 ```
 
-and tell the user the story is complete — do not invent new work.
+and tell the user the story is complete with the PR URL — do not invent new work.
 
 ## After the Iteration
 
