@@ -16,7 +16,7 @@ What gets installed:
 | `grill-with-docs` | Grilling that updates CONTEXT.md / ADRs inline (optionally seeded from a Jira ticket) |
 | `to-prd` | Turn conversation into a PRD, published as Jira subtask (label `prd`) |
 | `to-issues` | Break PRD into tracer-bullet Jira subtasks (label `ready-for-agent`) |
-| `handoff` | Compact conversation into handoff doc for the next agent |
+| `handoff` | Handoff doc for the next agent + Jira handoff comment and pause markers when story context exists |
 | `ralph-once` | One human-in-the-loop TDD Ralph iteration over a Jira story (PRD.md fallback) with stage comments + quality gates (+ `ralph-once.sh`, `afk-ralph.sh`) |
 | `jira-ralph` | TDD loop over ready-for-agent Jira subtasks → draft PR |
 | Atlassian MCP | Jira access for the skills above |
@@ -90,7 +90,7 @@ If the script needs `sudo` and cannot get it, tell the user which command to run
 
 ```bash
 ls "$DEST" | grep -cE 'grill-me|grill-with-docs|to-prd|to-issues|handoff|ralph-once|jira-ralph'   # expect 7
-grep -L '{{JIRA' "$DEST"/{grill-me,grill-with-docs,to-prd,to-issues,ralph-once,jira-ralph}/SKILL.md # all listed = no leftover placeholders
+grep -L '{{JIRA' "$DEST"/{grill-me,grill-with-docs,to-prd,to-issues,handoff,ralph-once,jira-ralph}/SKILL.md # all listed = no leftover placeholders
 claude mcp list | grep -i atlassian
 command -v glab
 ```

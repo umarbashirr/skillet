@@ -120,7 +120,7 @@ Implement the minimal code that makes all tests pass. Follow project conventions
 
 Run the tests. If they fail:
 - Read the failure, fix the IMPLEMENTATION (never the tests), re-run.
-- Max 5 fix iterations — past that, go to **Halt on Failure**.
+- Max 3 fix iterations. More than 3 failures means the approach is wrong, the tests encode a misunderstanding, or the subtask is underspecified — that is a human call. Go to **Halt on Failure**: comment on Jira what was tried and what keeps failing, tell the user plainly what is happening, and stop so the user can do the work or think it through. Do NOT keep grinding.
 
 When tests pass, re-read the acceptance criteria and verify each one is actually met by the code (not just by the tests). If a criterion is unmet, write a test for it first, then implement — same rules.
 

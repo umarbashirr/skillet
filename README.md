@@ -12,7 +12,7 @@ npx github:umarbashirr/skillet
 │  ◼ grill-with-docs     grilling that maintains CONTEXT.md/ADRs, Jira-seedable
 │  ◼ to-prd              conversation → PRD as Jira subtask
 │  ◼ to-issues           PRD → ready-for-agent Jira subtasks
-│  ◼ handoff             compact session into handoff doc
+│  ◼ handoff             handoff doc + Jira handoff comments
 │  ◼ ralph-once          single Jira TDD Ralph iteration + loop scripts
 │  ◼ jira-ralph          TDD loop over Jira subtasks → draft PR
 │  ◼ Atlassian (Jira) MCP server
@@ -40,9 +40,9 @@ Skills (into `~/.claude/skills/` or `./.claude/skills/`):
 
 - **grill-me** — relentless plan interview, seedable from a Jira ticket URL
 - **grill-with-docs** — grilling that maintains CONTEXT.md and ADRs inline, seedable from a Jira ticket URL
-- **to-prd** — conversation → PRD, published as a Jira subtask (label `prd`)
+- **to-prd** — conversation → PRD, published as a Jira subtask (label `prd`); posts the full Q&A conversation record as a comment on the story
 - **to-issues** — PRD → tracer-bullet Jira subtasks (label `ready-for-agent`)
-- **handoff** — compact the session into a handoff doc for the next agent
+- **handoff** — compact the session into a handoff doc for the next agent; with story context, also posts a handoff comment on the story and a pause marker on the in-flight subtask
 - **ralph-once** — single human-in-the-loop TDD iteration over a Jira story: PO test cases → failing tests → commit → implement → commit → lint/format/typecheck/build, Jira comment per stage, draft PR when the last subtask is done (`PRD.md` fallback; plus `ralph-once.sh` / `afk-ralph.sh`)
 - **jira-ralph** — TDD loop over ready-for-agent Jira subtasks, ending in a draft PR
 

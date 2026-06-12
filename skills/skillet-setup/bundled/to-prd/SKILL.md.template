@@ -91,4 +91,21 @@ mcp__plugin_atlassian_atlassian__createJiraIssue(
 
 After creation, output the subtask key and URL so the user can bookmark it.
 
+### 6. Post the conversation record on the parent story
+
+So the team can later see what was questioned and what was answered, post the conversation that led to this PRD as a comment on the PARENT story (not the PRD subtask):
+
+- Reconstruct the conversation faithfully as a Q&A transcript: every question asked (by the agent during grilling, or by the user) and the answer given, in order, verbatim where possible. Do not summarise away decisions — the point is the reasoning trail.
+- Prefix each entry with the speaker: `[Agent]` / `[User]`.
+- Redact secrets, credentials, and PII before posting.
+- Jira comments have a size limit — if the transcript is too long for one comment, split it into numbered comments (`Conversation record 1/3`, `2/3`, …) in order.
+
+```
+mcp__plugin_atlassian_atlassian__addCommentToJiraIssue(
+  cloudId: "{{JIRA_DOMAIN}}",
+  issueIdOrKey: "<parent story key>",
+  body: "📝 Conversation record behind PRD <prd-subtask-key>:\n\n[Agent] <question>\n[User] <answer>\n..."
+)
+```
+
 Do NOT close or modify the parent story.
