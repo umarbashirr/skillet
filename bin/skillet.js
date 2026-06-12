@@ -40,6 +40,7 @@ const AGENTS = [
   { value: 'vscode-copilot', label: 'VS Code Copilot', detect: ['.config', 'Code'], skillsDir: ['.copilot', 'skills'] },
   { value: 'codex', label: 'Codex', detect: ['.codex'], skillsDir: ['.codex', 'skills'] },
   { value: 'antigravity', label: 'Antigravity', detect: ['.gemini'], skillsDir: ['.gemini', 'skills'] },
+  { value: 'cline', label: 'Cline', detect: ['.config', 'Code', 'User', 'globalStorage', 'saoudrizwan.claude-dev'], skillsDir: ['.cline', 'skills'] },
 ];
 
 function parseArgs(argv) {
@@ -285,6 +286,19 @@ const MCP_REGISTER = {
     });
     return null;
   },
+  cline(home) {
+    const file =
+      process.platform === 'darwin'
+        ? path.join(home, 'Library', 'Application Support', 'Code', 'User', 'globalStorage', 'saoudrizwan.claude-dev', 'settings', 'cline_mcp_settings.json')
+        : process.platform === 'win32'
+          ? path.join(process.env.APPDATA ?? path.join(home, 'AppData', 'Roaming'), 'Code', 'User', 'globalStorage', 'saoudrizwan.claude-dev', 'settings', 'cline_mcp_settings.json')
+          : path.join(home, '.config', 'Code', 'User', 'globalStorage', 'saoudrizwan.claude-dev', 'settings', 'cline_mcp_settings.json');
+    mergeJsonFile(file, (o) => {
+      o.mcpServers ??= {};
+      o.mcpServers.atlassian ??= { url: ATL_HTTP, disabled: false, autoApprove: [] };
+    });
+    return null;
+  },
 };
 
 // --- Auth flows: how to verify, how to complete ---
@@ -309,6 +323,10 @@ const MCP_AUTH = {
   antigravity: {
     verify: null,
     steps: 'Open Antigravity → Agent panel "…" → MCP Servers → refresh "atlassian"; the first use opens the mcp-remote browser OAuth.',
+  },
+  cline: {
+    verify: null,
+    steps: 'Open VS Code with Cline → click the MCP icon in the Cline panel → find "atlassian" → complete the browser OAuth.',
   },
 };
 
