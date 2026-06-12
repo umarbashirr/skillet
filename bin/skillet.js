@@ -130,6 +130,25 @@ function hasCmd(cmd) {
   return cmdOk(process.platform === 'win32' ? 'where' : 'which', [cmd]);
 }
 
+// Windows: locate a freshly installed binary that isn't on this process's PATH yet.
+function winFindBinDir(dep) {
+  const home = os.homedir();
+  const candidates = [
+    path.join(process.env.LOCALAPPDATA ?? path.join(home, 'AppData', 'Local'), 'Microsoft', 'WinGet', 'Links'),
+    path.join(home, 'scoop', 'shims'),
+    'C:\\ProgramData\\chocolatey\\bin',
+  ];
+  return candidates.find((dir) => fs.existsSync(path.join(dir, `${dep}.exe`))) ?? null;
+}
+
+// Add a dir to PATH for this process AND persist it to the user PATH so future
+// terminals get it. PowerShell, not setx — setx truncates PATH at 1024 chars.
+function winAddPath(dir) {
+  process.env.PATH = `${process.env.PATH};${dir}`;
+  const ps = `$u=[Environment]::GetEnvironmentVariable('Path','User'); if(($u -split ';') -notcontains '${dir}'){[Environment]::SetEnvironmentVariable('Path', ($u.TrimEnd(';') + ';' + '${dir}'), 'User')}`;
+  return spawnSync('powershell', ['-NoProfile', '-Command', ps], { stdio: 'pipe' }).status === 0;
+}
+
 // Merge a key into a JSON config file without clobbering what's already there.
 // Unparseable files are backed up to <file>.bak and replaced.
 function mergeJsonFile(file, mutate) {
@@ -471,8 +490,19 @@ async function main() {
     }
     s.stop(ok ? `${dep} ✔` : `${dep} ✘`);
     depResults.push(ok ? `${dep}: installed` : `${dep}: FAILED — install manually: ${manual}`);
+    // self-heal PATH so auth can run in this same session
     if (ok && process.platform === 'win32' && !hasCmd(dep)) {
-      depResults.push(`${dep}: open a NEW terminal for it to be on PATH, then run \`${dep} auth login\``);
+      const binDir = winFindBinDir(dep);
+      if (binDir) {
+        const persisted = winAddPath(binDir);
+        depResults.push(
+          persisted
+            ? `${dep}: added ${binDir} to PATH (this session + future terminals)`
+            : `${dep}: on PATH for this session; persisting failed — add ${binDir} to your user PATH manually`,
+        );
+      } else {
+        depResults.push(`${dep}: installed but binary not found — open a NEW terminal, then run \`${dep} auth login\``);
+      }
     }
   }
 
