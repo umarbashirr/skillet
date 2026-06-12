@@ -18,12 +18,12 @@ npx github:umarbashirr/skillet
 
 ◆  Which integrations/CLIs to install? (uncheck to opt out)
 │  ◼ Atlassian (Jira) MCP server
-│  ◼ gh CLI
+│  ◻ gh CLI              opt-in, unchecked by default
 │  ◼ glab CLI
 │  ◻ afk-ralph.sh        autonomous Docker loop — opt-in, unchecked by default
 
-◆  Which agents to install for? (detected ones pre-selected)
-│  ◼ Claude Code    ◼ Cursor    ◼ VS Code Copilot    ◼ Codex    ◼ Antigravity
+◆  Which agents to install for? (Claude pre-selected)
+│  ◼ Claude Code    ◻ Cursor    ◻ VS Code Copilot    ◻ Codex    ◻ Antigravity
 ```
 
 The installer finishes every flow: skills are symlinked into each selected agent, the Atlassian MCP server is registered in each agent's own config format, `gh`/`glab` are installed — and each auth flow (`gh auth login`, `glab auth login`, Atlassian OAuth per agent) is run or walked through and verified before the installer declares success. Anything left pending is listed at the end.

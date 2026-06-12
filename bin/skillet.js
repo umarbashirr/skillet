@@ -24,13 +24,13 @@ const SKILLS = [
 ];
 const DEPS = [
   { value: 'jira-mcp', label: 'Atlassian (Jira) MCP server', hint: 'registered in every selected agent' },
-  { value: 'gh', label: 'gh CLI', hint: 'GitHub CLI' },
+  { value: 'gh', label: 'gh CLI', hint: 'GitHub CLI — NOT selected by default' },
   { value: 'glab', label: 'glab CLI', hint: 'GitLab CLI' },
   { value: 'afk-ralph', label: 'afk-ralph.sh', hint: 'autonomous Docker loop — NOT selected by default' },
 ];
 const JIRA_SKILLS = new Set(['grill-me', 'grill-with-docs', 'to-prd', 'to-issues', 'handoff', 'ralph-once', 'jira-ralph']);
 const ALL = [...SKILLS.map((s) => s.value), ...DEPS.map((d) => d.value)];
-const DEFAULTS = ALL.filter((v) => v !== 'afk-ralph'); // afk loop is opt-in
+const DEFAULTS = ALL.filter((v) => !['afk-ralph', 'gh'].includes(v)); // afk loop and gh are opt-in
 
 // Skills live canonically in .agents/skills (skills.sh convention) and are symlinked
 // into each selected agent. MCP is registered per agent in its own config format.
@@ -285,16 +285,16 @@ async function main() {
     const unknown = agents.filter((v) => !AGENTS.some((a) => a.value === v));
     if (unknown.length) bail(`Unknown agents: ${unknown.join(', ')} (valid: ${AGENTS.map((a) => a.value).join(', ')})`);
   } else if (args.yes) {
-    agents = detected.length ? detected : ['claude'];
+    agents = ['claude'];
   } else {
     const picked = await p.multiselect({
-      message: 'Which agents to install for? (detected ones pre-selected)',
+      message: 'Which agents to install for? (Claude pre-selected)',
       options: AGENTS.map((a) => ({
         value: a.value,
         label: a.label,
         hint: detected.includes(a.value) ? 'detected' : undefined,
       })),
-      initialValues: detected.length ? detected : ['claude'],
+      initialValues: ['claude'],
       required: true,
     });
     if (p.isCancel(picked)) bail();
