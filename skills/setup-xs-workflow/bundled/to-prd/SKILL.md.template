@@ -1,0 +1,94 @@
+---
+name: to-prd
+description: Turn the current conversation context into a PRD and publish it as a Jira Subtask under the parent story. Use when user wants to create a PRD from the current context.
+---
+
+This skill takes the current conversation context and codebase understanding and produces a PRD. Do NOT interview the user — just synthesize what you already know.
+
+## Jira Configuration
+- Domain: `{{JIRA_DOMAIN}}`
+- Project: `{{JIRA_PROJECT}}`
+- PRD subtask label: `prd`
+- Subtask issue type: `Subtask`
+
+## Process
+
+### 1. Determine parent story key
+
+The parent story key (e.g. `{{JIRA_PROJECT}}-123`) should be in the conversation context — it was either passed to `/grill-me` as a Jira URL, or stated explicitly by the user. Extract it. If not present, ask the user: "What is the Jira story key this PRD belongs to? (e.g. {{JIRA_PROJECT}}-123)"
+
+### 2. Explore the repo
+
+Understand the current state of the codebase relevant to the feature. Use the project's domain glossary vocabulary throughout the PRD, and respect any ADRs in the area you're touching.
+
+### 3. Sketch major modules
+
+Identify the major modules you will need to build or modify. Look for deep modules that can be tested in isolation. Check with the user that these modules match their expectations. Confirm which modules they want tests written for.
+
+### 4. Write the PRD
+
+Use the template below. Be thorough — the PRD becomes the single source of truth for the implementation subtasks.
+
+<prd-template>
+
+## Problem Statement
+
+The problem that the user is facing, from the user's perspective.
+
+## Solution
+
+The solution to the problem, from the user's perspective.
+
+## User Stories
+
+A LONG, numbered list of user stories in the format:
+
+1. As an <actor>, I want a <feature>, so that <benefit>
+
+Cover all actors and edge cases. Aim for 10+ stories.
+
+## Implementation Decisions
+
+- Modules to build/modify and their interfaces
+- Architectural decisions
+- Schema changes
+- API contracts
+- Specific interactions and state transitions
+
+Do NOT include specific file paths or code snippets unless a snippet encodes a decision more precisely than prose (e.g. a state machine shape). If you include a snippet, note it came from a prototype and trim to the decision-rich parts only.
+
+## Testing Decisions
+
+- What makes a good test for this feature (test external behaviour, not internals)
+- Which modules will be tested
+- Prior art for tests in the codebase
+
+## Out of Scope
+
+What is explicitly excluded from this PRD.
+
+## Further Notes
+
+Any additional context.
+
+</prd-template>
+
+### 5. Publish PRD as Jira Subtask
+
+Create a Subtask under the parent story:
+
+```
+mcp__plugin_atlassian_atlassian__createJiraIssue(
+  cloudId: "{{JIRA_DOMAIN}}",
+  projectKey: "{{JIRA_PROJECT}}",
+  issueType: "Subtask",
+  summary: "PRD: <parent story summary>",
+  description: "<full PRD content in Jira markdown>",
+  parent: "<parent story key>",
+  labels: ["prd"]
+)
+```
+
+After creation, output the subtask key and URL so the user can bookmark it.
+
+Do NOT close or modify the parent story.

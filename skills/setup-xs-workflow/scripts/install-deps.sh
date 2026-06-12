@@ -1,0 +1,45 @@
+#!/bin/bash
+# Installs system dependencies for the XS workflow:
+#   1. glab  — GitLab CLI (https://gitlab.com/gitlab-org/cli)
+#   2. Atlassian Rovo MCP server (Jira) registered with Claude Code
+set -e
+
+echo "== 1/2 glab (GitLab CLI) =="
+if command -v glab >/dev/null 2>&1; then
+  echo "glab already installed: $(glab --version | head -1)"
+else
+  if command -v brew >/dev/null 2>&1; then
+    brew install glab
+  elif command -v apt-get >/dev/null 2>&1 && apt-cache show glab >/dev/null 2>&1; then
+    sudo apt-get update && sudo apt-get install -y glab
+  elif command -v dnf >/dev/null 2>&1; then
+    sudo dnf install -y glab
+  elif command -v snap >/dev/null 2>&1; then
+    sudo snap install glab
+  else
+    echo "No package manager found for glab. Installing latest binary from GitLab releases..."
+    ARCH=$(uname -m); case "$ARCH" in x86_64) ARCH=amd64;; aarch64|arm64) ARCH=arm64;; esac
+    OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+    VERSION=$(curl -s "https://gitlab.com/api/v4/projects/gitlab-org%2Fcli/releases" | grep -o '"tag_name":"v[^"]*"' | head -1 | cut -d'"' -f4)
+    curl -sL "https://gitlab.com/gitlab-org/cli/-/releases/${VERSION}/downloads/glab_${VERSION#v}_${OS}_${ARCH}.tar.gz" | tar -xz -C /tmp
+    mkdir -p "$HOME/.local/bin" && mv /tmp/bin/glab "$HOME/.local/bin/glab"
+    echo "Installed to ~/.local/bin/glab — ensure it is on PATH."
+  fi
+  echo "glab installed. Authenticate with: glab auth login"
+fi
+
+echo "== 2/2 Atlassian (Jira) MCP server =="
+if command -v claude >/dev/null 2>&1; then
+  if claude mcp list 2>/dev/null | grep -qi atlassian; then
+    echo "Atlassian MCP already registered."
+  else
+    # SSE endpoint is deprecated (June 2026) — use the HTTP endpoint.
+    claude mcp add --transport http atlassian https://mcp.atlassian.com/v1/mcp --scope user
+    echo "Atlassian MCP registered. Run /mcp inside Claude Code to complete the OAuth login."
+  fi
+else
+  echo "claude CLI not found — install Claude Code first: npm i -g @anthropic-ai/claude-code"
+  exit 1
+fi
+
+echo "== Done =="

@@ -1,0 +1,291 @@
+---
+name: jira-ralph
+description: TDD implementation loop for Jira subtasks. Fetches ready-for-agent subtasks from a parent story, writes failing tests first, commits, writes implementation, commits, updates Jira status and comments at each stage, creates a draft PR at the end. Invoke with /jira-ralph <PARENT-STORY-KEY> [--mode single|all]
+---
+
+# Jira Ralph — TDD Implementation Loop
+
+## Invocation
+
+```
+/jira-ralph {{JIRA_PROJECT}}-123 --mode single    # process one subtask, then stop
+/jira-ralph {{JIRA_PROJECT}}-123 --mode all       # process all ready-for-agent subtasks
+```
+
+Default mode is `single` if `--mode` is omitted.
+
+## Jira Configuration
+- Domain: `{{JIRA_DOMAIN}}`
+- Project: `{{JIRA_PROJECT}}`
+- Pick filter: label = `ready-for-agent` AND status = `To Do`
+- Status transitions: `To Do` → `In Progress` → `Done`
+- On failure: add label `blocked`, comment reason, halt
+
+## Step 1: Parse Arguments
+
+Extract:
+- `PARENT_KEY` — the parent story key (e.g. `{{JIRA_PROJECT}}-123`)
+- `MODE` — `single` or `all` (default: `single`)
+
+If PARENT_KEY is missing, stop and tell the user:
+> "Usage: /jira-ralph {{JIRA_PROJECT}}-123 [--mode single|all]"
+
+## Step 2: Fetch Parent Story
+
+```
+mcp__plugin_atlassian_atlassian__getJiraIssue(
+  cloudId: "{{JIRA_DOMAIN}}",
+  issueIdOrKey: "<PARENT_KEY>"
+)
+```
+
+Extract: parent summary. Build branch slug from summary (lowercase, hyphens, max 40 chars).
+
+Branch name: `feat/<PARENT_KEY>-<slug>` (e.g. `feat/{{JIRA_PROJECT}}-123-user-auth-otp`)
+
+## Step 3: Fetch Ready Subtasks
+
+```
+mcp__plugin_atlassian_atlassian__searchJiraIssuesUsingJql(
+  cloudId: "{{JIRA_DOMAIN}}",
+  jql: "project = {{JIRA_PROJECT}} AND parent = <PARENT_KEY> AND labels = ready-for-agent AND status = \"To Do\" ORDER BY created ASC",
+  fields: ["summary", "description", "status", "labels", "key"]
+)
+```
+
+If no subtasks found, stop:
+> "No ready-for-agent subtasks with status 'To Do' found under <PARENT_KEY>. Label subtasks with 'ready-for-agent' and ensure status is 'To Do'."
+
+If MODE = `single`: take only the first subtask.
+If MODE = `all`: take all subtasks in order.
+
+## Step 4: Prepare Git Branch
+
+Check if branch already exists:
+```bash
+git fetch origin
+git branch -a | grep "feat/<PARENT_KEY>-<slug>"
+```
+
+If branch does not exist:
+```bash
+git checkout develop
+git pull origin develop
+git checkout -b feat/<PARENT_KEY>-<slug>
+```
+
+If branch exists:
+```bash
+git checkout feat/<PARENT_KEY>-<slug>
+git pull origin feat/<PARENT_KEY>-<slug> 2>/dev/null || true
+```
+
+## Step 5: Process Each Subtask
+
+Repeat this block for each subtask. Track `SUBTASK_ITERATION` counter (starts at 1, max 5).
+
+---
+
+### 5a. Transition to In Progress
+
+```
+mcp__plugin_atlassian_atlassian__transitionJiraIssue(
+  cloudId: "{{JIRA_DOMAIN}}",
+  issueIdOrKey: "<SUBTASK_KEY>",
+  transition: "In Progress"
+)
+```
+
+### 5b. Comment: Picked Up
+
+```
+mcp__plugin_atlassian_atlassian__addCommentToJiraIssue(
+  cloudId: "{{JIRA_DOMAIN}}",
+  issueIdOrKey: "<SUBTASK_KEY>",
+  body: "🔄 Picked up by agent. Writing failing tests now.\nBranch: feat/<PARENT_KEY>-<slug>"
+)
+```
+
+### 5c. Write Failing Tests
+
+Read the subtask description and acceptance criteria thoroughly. Also read the **parent story** (`PARENT_KEY`) description and acceptance criteria.
+
+**Extract PO-written test cases:**
+- Scan both the subtask and parent story for any test cases, scenarios, or acceptance criteria the PO has explicitly listed (numbered lists, "Given/When/Then", "should…" bullets, test scenario tables, etc.).
+- If PO test cases exist: you MUST cover ALL of them. Write a test for each one by name. Then add any additional cases you identify (edge cases, failure paths, PRD rules, security constraints) on top.
+- If no PO test cases exist: derive the full test set yourself from the subtask + parent story + PRD.
+
+Write test file(s) following project conventions:
+- Co-locate `*.spec.ts` next to source files
+- Use `Test.createTestingModule` with mocked dependencies (unit tests)
+- Do NOT write implementation code yet — tests must fail at this point
+
+**Self-verify before committing:** After writing, scan your test file and cross-check every PO-listed case by name. If any are missing, add them before proceeding.
+
+Run tests to confirm they fail:
+```bash
+pnpm test --testPathPattern="<test-file-name>" 2>&1 | tail -20
+```
+
+Expected: tests fail (not compile errors — tests should compile and run but assertions fail).
+
+If tests have compile errors, fix type errors and re-run. This does NOT count as an iteration.
+
+### 5d. Commit Failing Tests
+
+```bash
+git add <test-files>
+git commit -m "test: write failing tests for <SUBTASK_KEY> - <subtask summary short>"
+```
+
+### 5e. Comment: Tests Committed
+
+```
+mcp__plugin_atlassian_atlassian__addCommentToJiraIssue(
+  cloudId: "{{JIRA_DOMAIN}}",
+  issueIdOrKey: "<SUBTASK_KEY>",
+  body: "✅ Failing tests committed. PO-listed cases covered: {list PO cases by name, or 'none specified — test set derived from acceptance criteria'}. Now implementing."
+)
+```
+
+### 5f. Write Implementation
+
+Read the subtask description, acceptance criteria, and the failing tests.
+
+Implement minimal code to make all tests pass. Follow project conventions (CLAUDE.md):
+- No Prisma in controllers
+- Use repository pattern for data access
+- Throw NestJS HTTP exceptions at service layer
+- No `any`, no `console.log`, no silent failures
+
+After writing implementation, run tests:
+```bash
+pnpm test --testPathPattern="<test-file-name>" 2>&1 | tail -30
+```
+
+### 5g. Retry Loop (max 5 iterations)
+
+If tests fail:
+- Increment `SUBTASK_ITERATION`
+- If `SUBTASK_ITERATION` > 5: go to **Step 5h (Halt)**
+- Read the failure output carefully
+- Fix the implementation (do NOT change the tests)
+- Run tests again
+- Repeat
+
+If tests pass: go to **Step 5i**.
+
+### 5h. Halt on Failure
+
+If 5 iterations exhausted and tests still fail:
+
+Add label `blocked`:
+```
+mcp__plugin_atlassian_atlassian__updateJiraIssue(
+  cloudId: "{{JIRA_DOMAIN}}",
+  issueIdOrKey: "<SUBTASK_KEY>",
+  labels: ["ready-for-agent", "blocked"]
+)
+```
+
+Comment with failure details:
+```
+mcp__plugin_atlassian_atlassian__addCommentToJiraIssue(
+  cloudId: "{{JIRA_DOMAIN}}",
+  issueIdOrKey: "<SUBTASK_KEY>",
+  body: "🚫 Agent halted after 5 iterations. Tests still failing.\n\nLast failure output:\n{paste last test output}\n\nManual review required."
+)
+```
+
+Transition back to `To Do`:
+```
+mcp__plugin_atlassian_atlassian__transitionJiraIssue(
+  cloudId: "{{JIRA_DOMAIN}}",
+  issueIdOrKey: "<SUBTASK_KEY>",
+  transition: "To Do"
+)
+```
+
+Stop the entire batch. Do NOT proceed to the next subtask.
+
+Tell the user:
+> "Halted on <SUBTASK_KEY>. Tests did not pass after 5 iterations. Subtask marked blocked. Inspect the test output above and fix manually."
+
+### 5i. Commit Implementation
+
+```bash
+git add <implementation-files>
+git commit -m "feat: implement <SUBTASK_KEY> - <subtask summary short>"
+```
+
+### 5j. Run Full Test Suite
+
+```bash
+pnpm test 2>&1 | tail -20
+```
+
+If any previously-passing tests now fail (regression), fix them before proceeding. Do not count regression fixes against the 5-iteration cap.
+
+### 5k. Transition to Done
+
+```
+mcp__plugin_atlassian_atlassian__transitionJiraIssue(
+  cloudId: "{{JIRA_DOMAIN}}",
+  issueIdOrKey: "<SUBTASK_KEY>",
+  transition: "Done"
+)
+```
+
+### 5l. Comment: Complete
+
+```
+mcp__plugin_atlassian_atlassian__addCommentToJiraIssue(
+  cloudId: "{{JIRA_DOMAIN}}",
+  issueIdOrKey: "<SUBTASK_KEY>",
+  body: "✅ Implementation complete. Tests passing.\nCommits:\n- test: write failing tests for <SUBTASK_KEY>\n- feat: implement <SUBTASK_KEY>"
+)
+```
+
+---
+
+Repeat Step 5 for the next subtask (if MODE = `all`).
+
+## Step 6: Push Branch
+
+```bash
+git push -u origin feat/<PARENT_KEY>-<slug>
+```
+
+## Step 7: Create Draft PR
+
+```bash
+gh pr create \
+  --title "<PARENT_KEY>: <parent story summary>" \
+  --body "$(cat <<'EOF'
+## Jira Story
+https://{{JIRA_DOMAIN}}/browse/<PARENT_KEY>
+
+## Subtasks completed
+<list each SUBTASK_KEY with link and one-line summary>
+
+## Test plan
+- All unit tests pass: pnpm test
+- Each acceptance criterion covered by a spec file
+- No regressions in full test suite
+
+## Notes
+Draft PR — review and promote to ready when satisfied.
+
+🤖 Implemented via jira-ralph TDD loop
+EOF
+)" \
+  --base develop \
+  --draft
+```
+
+Output the PR URL to the user.
+
+## Step 8: Done
+
+Tell the user:
+> "✅ Done. Processed N subtask(s) under <PARENT_KEY>. Draft PR: <url>. Review and promote when ready."
