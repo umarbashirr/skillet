@@ -466,6 +466,17 @@ async function main() {
       depResults.push(`${dep}: already installed`);
       continue;
     }
+    // installed but missing from PATH (fresh winget install, stale terminal) — just heal PATH
+    if (process.platform === 'win32') {
+      const existing = winFindBinDir(dep);
+      if (existing) {
+        const persisted = winAddPath(existing);
+        depResults.push(
+          `${dep}: already installed — ${persisted ? `added ${existing} to PATH (this session + future terminals)` : `on PATH for this session; add ${existing} to your user PATH manually`}`,
+        );
+        continue;
+      }
+    }
     const s = p.spinner();
     s.start(`Installing ${dep}…`);
     let ok = false;
