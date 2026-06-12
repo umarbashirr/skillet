@@ -271,9 +271,20 @@ async function ensureAuth({ label, verify, login, steps, yes }) {
   return `${label}: still not verified — ${steps}`;
 }
 
+const BANNER = `
+\x1b[33m  ███████ ██   ██ ██ ██      ██      ███████ ████████
+  ██      ██  ██  ██ ██      ██      ██         ██
+  ███████ █████   ██ ██      ██      █████      ██
+       ██ ██  ██  ██ ██      ██      ██         ██
+  ███████ ██   ██ ██ ███████ ███████ ███████    ██\x1b[0m
+
+  🍳 \x1b[1mSkillet\x1b[0m — agent workflow installer \x1b[2mby Umar Bashir\x1b[0m
+`;
+
 async function main() {
   const args = parseArgs(process.argv.slice(2));
-  p.intro('🍳 skillet — agent workflow installer');
+  console.log(BANNER);
+  p.intro('🍳 skillet');
 
   // --- item selection ---
   let selected;
