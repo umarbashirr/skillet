@@ -1,15 +1,37 @@
-# xs-agent-skills
+# skillet 🍳
 
-One skill to install the whole XS team agent workflow.
+One command to install the whole XS team agent workflow. Everything is pre-selected — uncheck what you don't want.
+
+```bash
+npx skillet-cli
+```
+
+```
+◆  What to install? (all selected — uncheck to opt out)
+│  ◼ grill-me            relentless plan interview, Jira-seedable
+│  ◼ grill-with-docs     grilling that maintains CONTEXT.md/ADRs
+│  ◼ to-prd              conversation → PRD as Jira subtask
+│  ◼ to-issues           PRD → ready-for-agent Jira subtasks
+│  ◼ handoff             compact session into handoff doc
+│  ◼ ralph-once          single Ralph iteration + loop scripts
+│  ◼ jira-ralph          TDD loop over Jira subtasks → draft PR
+│  ◼ Atlassian (Jira) MCP server
+│  ◼ glab CLI
+```
+
+Non-interactive:
+
+```bash
+npx skillet-cli --yes                          # everything, defaults
+npx skillet-cli --yes --skip glab,handoff      # opt out of items
+npx skillet-cli --only grill-me,to-prd --jira-project AB
+```
+
+Alternative, skill-driven install (no Node needed):
 
 ```bash
 npx skills add <owner>/xs-agent-skills@setup-xs-workflow
-```
-
-Then in Claude Code:
-
-```
-/setup-xs-workflow
+# then in Claude Code: /setup-xs-workflow
 ```
 
 ## What it installs

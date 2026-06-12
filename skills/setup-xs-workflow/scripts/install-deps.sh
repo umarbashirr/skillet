@@ -4,7 +4,21 @@
 #   2. Atlassian Rovo MCP server (Jira) registered with Claude Code
 set -e
 
-echo "== 1/2 glab (GitLab CLI) =="
+# No args = install both. --glab / --mcp install only that piece.
+DO_GLAB=true; DO_MCP=true
+if [ $# -gt 0 ]; then
+  DO_GLAB=false; DO_MCP=false
+  for arg in "$@"; do
+    case "$arg" in
+      --glab) DO_GLAB=true ;;
+      --mcp)  DO_MCP=true ;;
+      *) echo "Unknown flag: $arg (use --glab and/or --mcp)"; exit 1 ;;
+    esac
+  done
+fi
+
+if $DO_GLAB; then
+echo "== glab (GitLab CLI) =="
 if command -v glab >/dev/null 2>&1; then
   echo "glab already installed: $(glab --version | head -1)"
 else
@@ -27,8 +41,10 @@ else
   fi
   echo "glab installed. Authenticate with: glab auth login"
 fi
+fi
 
-echo "== 2/2 Atlassian (Jira) MCP server =="
+if $DO_MCP; then
+echo "== Atlassian (Jira) MCP server =="
 if command -v claude >/dev/null 2>&1; then
   if claude mcp list 2>/dev/null | grep -qi atlassian; then
     echo "Atlassian MCP already registered."
@@ -40,6 +56,7 @@ if command -v claude >/dev/null 2>&1; then
 else
   echo "claude CLI not found — install Claude Code first: npm i -g @anthropic-ai/claude-code"
   exit 1
+fi
 fi
 
 echo "== Done =="

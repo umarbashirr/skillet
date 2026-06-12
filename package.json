@@ -1,0 +1,30 @@
+{
+  "name": "skillet-cli",
+  "version": "0.1.0",
+  "description": "Interactive installer for the XS agent workflow: grill-me, grill-with-docs, to-prd, to-issues, handoff, ralph-once, jira-ralph + Jira MCP and glab CLI",
+  "type": "module",
+  "bin": {
+    "skillet": "bin/skillet.js"
+  },
+  "files": [
+    "bin/",
+    "skills/",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "claude-code",
+    "agent-skills",
+    "skills",
+    "jira",
+    "ralph",
+    "mattpocock"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@clack/prompts": "^0.11.0"
+  }
+}
