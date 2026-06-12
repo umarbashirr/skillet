@@ -428,6 +428,19 @@ async function main() {
   }
 
   // --- CLI deps ---
+  // Windows: the deps script is bash — use winget/scoop/choco instead.
+  const WIN_INSTALL = {
+    gh: [
+      ['winget', ['install', '--id', 'GitHub.cli', '-e', '--accept-source-agreements', '--accept-package-agreements']],
+      ['scoop', ['install', 'gh']],
+      ['choco', ['install', 'gh', '-y']],
+    ],
+    glab: [
+      ['winget', ['install', 'glab', '--accept-source-agreements', '--accept-package-agreements']],
+      ['scoop', ['install', 'glab']],
+      ['choco', ['install', 'glab', '-y']],
+    ],
+  };
   const depResults = [];
   for (const dep of ['gh', 'glab'].filter((d) => selected.includes(d))) {
     if (hasCmd(dep)) {
@@ -436,14 +449,30 @@ async function main() {
     }
     const s = p.spinner();
     s.start(`Installing ${dep}…`);
-    try {
-      execFileSync('bash', [DEPS_SCRIPT, `--${dep}`], { stdio: 'pipe' });
-      s.stop(`${dep} ✔`);
-      depResults.push(`${dep}: installed`);
-    } catch (e) {
-      s.stop(`${dep} ✘`);
-      depResults.push(`${dep}: FAILED — run manually: bash ${DEPS_SCRIPT} --${dep}`);
-      if (e.stderr) console.error(String(e.stderr).trim());
+    let ok = false;
+    let manual;
+    if (process.platform === 'win32') {
+      manual = dep === 'gh' ? 'winget install --id GitHub.cli -e' : 'winget install glab';
+      for (const [tool, argv] of WIN_INSTALL[dep]) {
+        if (!hasCmd(tool)) continue;
+        if (spawnSync(tool, argv, { stdio: 'pipe', shell: true }).status === 0) {
+          ok = true;
+          break;
+        }
+      }
+    } else {
+      manual = `bash ${DEPS_SCRIPT} --${dep}`;
+      try {
+        execFileSync('bash', [DEPS_SCRIPT, `--${dep}`], { stdio: 'pipe' });
+        ok = true;
+      } catch (e) {
+        if (e.stderr) console.error(String(e.stderr).trim());
+      }
+    }
+    s.stop(ok ? `${dep} ✔` : `${dep} ✘`);
+    depResults.push(ok ? `${dep}: installed` : `${dep}: FAILED — install manually: ${manual}`);
+    if (ok && process.platform === 'win32' && !hasCmd(dep)) {
+      depResults.push(`${dep}: open a NEW terminal for it to be on PATH, then run \`${dep} auth login\``);
     }
   }
 
