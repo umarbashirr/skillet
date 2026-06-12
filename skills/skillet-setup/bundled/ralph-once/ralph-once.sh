@@ -7,7 +7,8 @@
 if [ -n "$1" ]; then
   echo "$1" > .ralph-story
 fi
-STORY=$(cat .ralph-story 2>/dev/null)
+# tr -d '\r': the file may have been written by ralph-once.cmd (CRLF)
+STORY=$(cat .ralph-story 2>/dev/null | tr -d '\r')
 
 if [ -n "$STORY" ]; then
   claude --permission-mode acceptEdits "/ralph-once $STORY"

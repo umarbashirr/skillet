@@ -15,6 +15,9 @@ npx github:umarbashirr/skillet
 │  ◼ handoff             handoff doc + Jira handoff comments
 │  ◼ ralph-once          single Jira TDD Ralph iteration + loop scripts
 │  ◼ jira-ralph          TDD loop over Jira subtasks → draft PR
+│  ◼ tdd                 red-green-refactor TDD discipline
+│  ◼ prototype           throwaway prototypes — terminal logic or UI variations
+│  ◼ caveman             ultra-compressed responses, ~75% fewer tokens
 
 ◆  Which integrations/CLIs to install? (uncheck to opt out)
 │  ◼ Atlassian (Jira) MCP server
@@ -55,8 +58,11 @@ Skills — canonical copy in `~/.agents/skills/` (or `./.agents/skills/` with `-
 - **to-prd** — conversation → PRD, published as a Jira subtask (label `prd`); posts the full Q&A conversation record as a comment on the story
 - **to-issues** — PRD → tracer-bullet Jira subtasks (label `ready-for-agent`)
 - **handoff** — compact the session into a handoff doc for the next agent; with story context, also posts a handoff comment on the story and a pause marker on the in-flight subtask
-- **ralph-once** — single human-in-the-loop TDD iteration over a Jira story: PO test cases → failing tests → commit → implement → commit → lint/format/typecheck/build, Jira comment per stage, draft PR when the last subtask is done (`PRD.md` fallback; plus `ralph-once.sh`; `afk-ralph.sh` autonomous loop is opt-in: `--only afk-ralph` or check it in the menu)
+- **ralph-once** — single human-in-the-loop TDD iteration over a Jira story: PO test cases → failing tests → commit → implement → commit → lint/format/typecheck/build, Jira comment per stage, draft PR when the last subtask is done (`PRD.md` fallback; plus `ralph-once.sh`, on Windows also `ralph-once.cmd`; `afk-ralph.sh` autonomous loop is opt-in: `--only afk-ralph` or check it in the menu)
 - **jira-ralph** — TDD loop over ready-for-agent Jira subtasks, ending in a draft PR
+- **tdd** — red-green-refactor discipline: vertical slices, behavior-not-implementation tests, mocking and interface-design guides
+- **prototype** — throwaway prototypes that answer a question: interactive terminal app for logic/state questions, or several radically different UI variations on one route
+- **caveman** — ultra-compressed response mode (~75% fewer tokens, full technical accuracy)
 
 System dependencies:
 
@@ -85,4 +91,4 @@ The installer asks for your Jira domain and project key and bakes them into the 
 
 ## Credits
 
-`grill-me`, `grill-with-docs`, `to-prd`, `to-issues`, `handoff`, and the Ralph technique are by [Matt Pocock](https://github.com/mattpocock/skills) ([aihero.dev — Getting Started with Ralph](https://www.aihero.dev/getting-started-with-ralph)). Jira adaptations and `jira-ralph` are our own additions. See [LICENSE](LICENSE).
+`grill-me`, `grill-with-docs`, `to-prd`, `to-issues`, `handoff`, `tdd`, `prototype`, `caveman`, and the Ralph technique are by [Matt Pocock](https://github.com/mattpocock/skills) ([aihero.dev — Getting Started with Ralph](https://www.aihero.dev/getting-started-with-ralph)). Jira adaptations and `jira-ralph` are our own additions. See [LICENSE](LICENSE).

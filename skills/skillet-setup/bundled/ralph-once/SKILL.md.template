@@ -288,5 +288,5 @@ Same discipline, no Jira: read `PRD.md` + `progress.txt`, pick the highest-prior
 
 ## Companion Scripts
 
-- `ralph-once.sh [STORY-KEY]` — same single iteration via `claude --permission-mode acceptEdits`; remembers the key in `.ralph-story`
+- `ralph-once.sh [STORY-KEY]` (Windows: `ralph-once.cmd`) — same single iteration via `claude --permission-mode acceptEdits`; remembers the key in `.ralph-story`
 - `afk-ralph.sh <iterations> [STORY-KEY]` — autonomous loop in a Docker sandbox, exits early on `<promise>COMPLETE</promise>`

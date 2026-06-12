@@ -21,6 +21,9 @@ const SKILLS = [
   { value: 'handoff', label: 'handoff', hint: 'handoff doc + Jira handoff comments' },
   { value: 'ralph-once', label: 'ralph-once', hint: 'single Jira TDD Ralph iteration + loop scripts' },
   { value: 'jira-ralph', label: 'jira-ralph', hint: 'TDD loop over Jira subtasks → draft PR' },
+  { value: 'tdd', label: 'tdd', hint: 'red-green-refactor TDD discipline' },
+  { value: 'prototype', label: 'prototype', hint: 'throwaway prototypes — terminal logic or UI variations' },
+  { value: 'caveman', label: 'caveman', hint: 'ultra-compressed responses, ~75% fewer tokens' },
 ];
 const DEPS = [
   { value: 'jira-mcp', label: 'Atlassian (Jira) MCP server', hint: 'registered in every selected agent' },
@@ -514,8 +517,9 @@ async function main() {
   }
 
   // ralph scripts → project root (afk-ralph.sh is opt-in)
+  // Windows also gets ralph-once.cmd — .sh only runs under Git Bash there.
   const ralphScripts = [
-    ...(installed.includes('ralph-once') ? ['ralph-once.sh'] : []),
+    ...(installed.includes('ralph-once') ? ['ralph-once.sh', ...(WINSHELL ? ['ralph-once.cmd'] : [])] : []),
     ...(selected.includes('afk-ralph') ? ['afk-ralph.sh'] : []),
   ];
   if (ralphScripts.length) {

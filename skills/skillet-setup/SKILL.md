@@ -1,6 +1,6 @@
 ---
 name: skillet-setup
-description: Use when setting up the skillet agent workflow in a project — installs the grill-me, grill-with-docs, to-prd, to-issues, handoff, ralph-once, and jira-ralph skills for one or more agents (Claude Code, Cursor, VS Code Copilot, Codex, Antigravity), registers the Atlassian (Jira) MCP server in each, installs the gh and glab CLIs, and walks every auth flow to completion. Run once per machine/project; also use when any of those skills are missing or Jira MCP is not connected.
+description: Use when setting up the skillet agent workflow in a project — installs the grill-me, grill-with-docs, to-prd, to-issues, handoff, ralph-once, jira-ralph, tdd, prototype, and caveman skills for one or more agents (Claude Code, Cursor, VS Code Copilot, Codex, Antigravity), registers the Atlassian (Jira) MCP server in each, installs the gh and glab CLIs, and walks every auth flow to completion. Run once per machine/project; also use when any of those skills are missing or Jira MCP is not connected.
 disable-model-invocation: true
 ---
 
@@ -19,6 +19,9 @@ What gets installed:
 | `handoff` | Handoff doc for the next agent + Jira handoff comment and pause markers when story context exists |
 | `ralph-once` | One human-in-the-loop TDD Ralph iteration over a Jira story (PRD.md fallback) with stage comments + quality gates (+ `ralph-once.sh`, `afk-ralph.sh`) |
 | `jira-ralph` | TDD loop over ready-for-agent Jira subtasks → draft PR |
+| `tdd` | Red-green-refactor TDD discipline (vertical slices, behavior-not-implementation tests) |
+| `prototype` | Throwaway prototypes — interactive terminal app for logic/state questions, or multiple UI variations on one route |
+| `caveman` | Ultra-compressed response mode, ~75% fewer tokens, full technical accuracy |
 | Atlassian MCP | Jira access for the skills above, registered per agent |
 | `gh` CLI | GitHub CLI for repos hosted on GitHub |
 | `glab` CLI | GitLab CLI for repos hosted on GitLab |
@@ -36,7 +39,7 @@ Ask the user:
 
 Let `DEST` be the chosen skills directory and `BUNDLED` be the `bundled/` directory next to this SKILL.md.
 
-For each of `grill-me`, `grill-with-docs`, `to-prd`, `to-issues`, `handoff`, `ralph-once`, `jira-ralph`:
+For each of `grill-me`, `grill-with-docs`, `to-prd`, `to-issues`, `handoff`, `ralph-once`, `jira-ralph`, `tdd`, `prototype`, `caveman`:
 
 ```bash
 mkdir -p "$DEST/<name>"
@@ -44,10 +47,12 @@ sed -e 's/{{JIRA_DOMAIN}}/<jira-domain>/g' -e 's/{{JIRA_PROJECT}}/<project-key>/
   "$BUNDLED/<name>/SKILL.md.template" > "$DEST/<name>/SKILL.md"
 ```
 
-Then copy supporting files verbatim:
+Then copy supporting files verbatim (everything in the bundled skill dir except `SKILL.md.template`):
 
 ```bash
 cp "$BUNDLED/grill-with-docs/CONTEXT-FORMAT.md" "$BUNDLED/grill-with-docs/ADR-FORMAT.md" "$DEST/grill-with-docs/"
+cp "$BUNDLED"/tdd/{deep-modules,interface-design,mocking,refactoring,tests}.md "$DEST/tdd/"
+cp "$BUNDLED"/prototype/{LOGIC,UI}.md "$DEST/prototype/"
 ```
 
 Do NOT skip a skill because a directory already exists — show the user a diff and ask overwrite/skip per conflict.
@@ -76,6 +81,12 @@ Copy into the project root and make executable:
 cp "$BUNDLED/ralph-once/ralph-once.sh" ./
 chmod +x ralph-once.sh
 touch progress.txt
+```
+
+On Windows also copy the cmd twin — `.sh` only runs under Git Bash there:
+
+```bash
+cp "$BUNDLED/ralph-once/ralph-once.cmd" ./
 ```
 
 `afk-ralph.sh` (autonomous Docker loop) is opt-in — install it ONLY if the user explicitly asks for the AFK loop:
@@ -122,8 +133,8 @@ Do not declare success with pending auth. For each, verify → guide → re-veri
 ## Verify
 
 ```bash
-ls "$DEST" | grep -cE 'grill-me|grill-with-docs|to-prd|to-issues|handoff|ralph-once|jira-ralph'   # expect 7
-grep -L '{{JIRA' "$DEST"/{grill-me,grill-with-docs,to-prd,to-issues,handoff,ralph-once,jira-ralph}/SKILL.md # all listed = no leftover placeholders
+ls "$DEST" | grep -cE 'grill-me|grill-with-docs|to-prd|to-issues|handoff|ralph-once|jira-ralph|tdd|prototype|caveman'   # expect 10
+grep -L '{{JIRA' "$DEST"/{grill-me,grill-with-docs,to-prd,to-issues,handoff,ralph-once,jira-ralph,tdd,prototype,caveman}/SKILL.md # all listed = no leftover placeholders
 claude mcp list | grep -i atlassian
 command -v glab
 ```
@@ -132,4 +143,4 @@ Report each check's result to the user. If any fails, fix it before declaring su
 
 ## Credits
 
-grill-me, grill-with-docs, to-prd, to-issues, handoff and the Ralph technique are by Matt Pocock — https://github.com/mattpocock/skills and https://www.aihero.dev/getting-started-with-ralph. jira-ralph is a team original inspired by the same.
+grill-me, grill-with-docs, to-prd, to-issues, handoff, tdd, prototype, caveman and the Ralph technique are by Matt Pocock — https://github.com/mattpocock/skills and https://www.aihero.dev/getting-started-with-ralph. jira-ralph is a team original inspired by the same.
