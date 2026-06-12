@@ -1,6 +1,46 @@
 ---
 name: grill-with-docs
-description: Grilling session that challenges your plan against the existing domain model, sharpens terminology, and updates documentation (CONTEXT.md, ADRs) inline as decisions crystallise. Use when user wants to stress-test a plan against their project's language and documented decisions.
+description: Grilling session that challenges your plan against the existing domain model, sharpens terminology, and updates documentation (CONTEXT.md, ADRs) inline as decisions crystallise. Use when user wants to stress-test a plan against their project's language and documented decisions. Accepts an optional Jira ticket URL as the first argument to seed the session with ticket context.
+---
+
+## Jira Ticket Context (run FIRST if argument looks like a Jira URL)
+
+If the ARGUMENTS contain a URL matching the pattern `https://*.atlassian.net/*/{{JIRA_PROJECT}}-*` or the text contains a Jira issue key like `{{JIRA_PROJECT}}-123`:
+
+1. Extract the issue key (e.g. `{{JIRA_PROJECT}}-123`) from the URL or argument text.
+
+2. Fetch the issue using the Atlassian MCP tool:
+   ```
+   mcp__plugin_atlassian_atlassian__getJiraIssue(
+     cloudId: "{{JIRA_DOMAIN}}",
+     issueIdOrKey: "<extracted-key>"
+   )
+   ```
+
+3. Fetch comments on the issue:
+   ```
+   mcp__plugin_atlassian_atlassian__getJiraIssueComments(
+     cloudId: "{{JIRA_DOMAIN}}",
+     issueIdOrKey: "<extracted-key>"
+   )
+   ```
+
+4. Assemble the context block:
+   ```
+   JIRA TICKET: <key> — <summary>
+   STATUS: <status>
+   DESCRIPTION:
+   <description>
+
+   COMMENTS:
+   [comment author, date]: <comment body>
+   ...
+   ```
+
+5. Use this assembled context as the seed for the grilling session below. Do NOT ask the user to re-explain what is already in the ticket — start grilling from what the ticket implies. Terms used in the ticket are fair game for the glossary work below: challenge them against `CONTEXT.md` like any term the user types.
+
+If no Jira URL or key is found in the arguments, skip this section and proceed directly to grilling based on conversation context.
+
 ---
 
 <what-to-do>

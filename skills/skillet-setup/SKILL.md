@@ -13,7 +13,7 @@ What gets installed:
 | Piece | What it does |
 |-------|--------------|
 | `grill-me` | Relentless interview to stress-test a plan (optionally seeded from a Jira ticket) |
-| `grill-with-docs` | Grilling that updates CONTEXT.md / ADRs inline |
+| `grill-with-docs` | Grilling that updates CONTEXT.md / ADRs inline (optionally seeded from a Jira ticket) |
 | `to-prd` | Turn conversation into a PRD, published as Jira subtask (label `prd`) |
 | `to-issues` | Break PRD into tracer-bullet Jira subtasks (label `ready-for-agent`) |
 | `handoff` | Compact conversation into handoff doc for the next agent |

@@ -9,7 +9,7 @@ npx github:umarbashirr/skillet
 ```
 ◆  What to install? (all selected — uncheck to opt out)
 │  ◼ grill-me            relentless plan interview, Jira-seedable
-│  ◼ grill-with-docs     grilling that maintains CONTEXT.md/ADRs
+│  ◼ grill-with-docs     grilling that maintains CONTEXT.md/ADRs, Jira-seedable
 │  ◼ to-prd              conversation → PRD as Jira subtask
 │  ◼ to-issues           PRD → ready-for-agent Jira subtasks
 │  ◼ handoff             compact session into handoff doc
@@ -39,7 +39,7 @@ npx skills add umarbashirr/skillet@skillet-setup
 Skills (into `~/.claude/skills/` or `./.claude/skills/`):
 
 - **grill-me** — relentless plan interview, seedable from a Jira ticket URL
-- **grill-with-docs** — grilling that maintains CONTEXT.md and ADRs inline
+- **grill-with-docs** — grilling that maintains CONTEXT.md and ADRs inline, seedable from a Jira ticket URL
 - **to-prd** — conversation → PRD, published as a Jira subtask (label `prd`)
 - **to-issues** — PRD → tracer-bullet Jira subtasks (label `ready-for-agent`)
 - **handoff** — compact the session into a handoff doc for the next agent

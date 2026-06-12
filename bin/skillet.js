@@ -12,7 +12,7 @@ const DEPS_SCRIPT = path.join(__dirname, '..', 'skills', 'skillet-setup', 'scrip
 
 const SKILLS = [
   { value: 'grill-me', label: 'grill-me', hint: 'relentless plan interview, Jira-seedable' },
-  { value: 'grill-with-docs', label: 'grill-with-docs', hint: 'grilling that maintains CONTEXT.md/ADRs' },
+  { value: 'grill-with-docs', label: 'grill-with-docs', hint: 'grilling that maintains CONTEXT.md/ADRs, Jira-seedable' },
   { value: 'to-prd', label: 'to-prd', hint: 'conversation → PRD as Jira subtask' },
   { value: 'to-issues', label: 'to-issues', hint: 'PRD → ready-for-agent Jira subtasks' },
   { value: 'handoff', label: 'handoff', hint: 'compact session into handoff doc' },
