@@ -325,6 +325,7 @@ async function main() {
   const skillsToInstall = selected.filter((v) => SKILLS.some((s) => s.value === v));
   const installed = [];
   const skipped = [];
+  const linkSkipped = [];
 
   for (const name of skillsToInstall) {
     const target = path.join(destDir, name);
@@ -355,7 +356,9 @@ async function main() {
 
     // symlink the canonical copy into every selected agent
     for (const a of agentDefs) {
-      linkSkill(target, path.join(base, ...a.skillsDir), name, overwrite || args.yes);
+      if (!linkSkill(target, path.join(base, ...a.skillsDir), name, overwrite || args.yes)) {
+        linkSkipped.push(`${a.value}/${name}`);
+      }
     }
     installed.push(name);
   }
@@ -363,8 +366,21 @@ async function main() {
   // ralph scripts → project root
   if (installed.includes('ralph-once')) {
     for (const f of ['ralph-once.sh', 'afk-ralph.sh']) {
+      const src = path.join(BUNDLED, 'ralph-once', f);
       const dst = path.join(process.cwd(), f);
-      fs.copyFileSync(path.join(BUNDLED, 'ralph-once', f), dst);
+      if (fs.existsSync(dst) && fs.readFileSync(dst, 'utf8') !== fs.readFileSync(src, 'utf8')) {
+        let ow = args.yes;
+        if (!args.yes) {
+          const ok = await p.confirm({ message: `${f} exists with local changes — overwrite?` });
+          if (p.isCancel(ok)) bail();
+          ow = ok;
+        }
+        if (!ow) {
+          skipped.push(f);
+          continue;
+        }
+      }
+      fs.copyFileSync(src, dst);
       fs.chmodSync(dst, 0o755);
     }
     const progress = path.join(process.cwd(), 'progress.txt');
@@ -442,6 +458,7 @@ async function main() {
   if (installed.length) lines.push(`Skills → ${destDir}: ${installed.join(', ')}`);
   if (installed.length) lines.push(`Symlinked into: ${agents.join(', ')}`);
   if (skipped.length) lines.push(`Skipped (already present): ${skipped.join(', ')}`);
+  if (linkSkipped.length) lines.push(`⚠ NOT symlinked (real dir in the way, no overwrite): ${linkSkipped.join(', ')}`);
   if (wantsJira) lines.push(`Jira: ${domain} / ${project}`);
   lines.push(...mcpResults, ...depResults, ...authResults);
   p.note(lines.join('\n'), 'Installed');
