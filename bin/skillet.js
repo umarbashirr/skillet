@@ -154,15 +154,65 @@ function hasCmd(cmd) {
   return cmdOk(process.platform === 'win32' ? 'where' : 'which', [cmd]);
 }
 
+function winLocalAppData() {
+  return process.env.LOCALAPPDATA ?? path.join(os.homedir(), 'AppData', 'Local');
+}
+
+const WIN_SKILLET_BIN = () => path.join(winLocalAppData(), 'skillet', 'bin');
+
 // Windows: locate a freshly installed binary that isn't on this process's PATH yet.
 function winFindBinDir(dep) {
   const home = os.homedir();
   const candidates = [
-    path.join(process.env.LOCALAPPDATA ?? path.join(home, 'AppData', 'Local'), 'Microsoft', 'WinGet', 'Links'),
+    path.join(winLocalAppData(), 'Microsoft', 'WinGet', 'Links'),
     path.join(home, 'scoop', 'shims'),
     'C:\\ProgramData\\chocolatey\\bin',
+    WIN_SKILLET_BIN(),
   ];
   return candidates.find((dir) => fs.existsSync(path.join(dir, `${dep}.exe`))) ?? null;
+}
+
+// Last-resort Windows install: download the official release zip and drop the
+// exe into %LocalAppData%\skillet\bin — no package manager, no admin needed.
+async function winBinaryInstall(dep) {
+  const arch = os.arch() === 'arm64' ? 'arm64' : 'amd64';
+  let url;
+  if (dep === 'glab') {
+    const rel = await (await fetch('https://gitlab.com/api/v4/projects/gitlab-org%2Fcli/releases')).json();
+    const v = rel[0].tag_name;
+    url = `https://gitlab.com/gitlab-org/cli/-/releases/${v}/downloads/glab_${v.slice(1)}_windows_${arch}.zip`;
+  } else {
+    const rel = await (await fetch('https://api.github.com/repos/cli/cli/releases/latest')).json();
+    const v = rel.tag_name;
+    url = `https://github.com/cli/cli/releases/download/${v}/gh_${v.slice(1)}_windows_${arch}.zip`;
+  }
+  const zip = path.join(os.tmpdir(), `skillet-${dep}.zip`);
+  fs.writeFileSync(zip, Buffer.from(await (await fetch(url)).arrayBuffer()));
+  const extract = path.join(os.tmpdir(), `skillet-${dep}-extract`);
+  fs.rmSync(extract, { recursive: true, force: true });
+  const r = spawnSync('powershell', ['-NoProfile', '-Command', `Expand-Archive -Path '${zip}' -DestinationPath '${extract}' -Force`], { stdio: 'pipe' });
+  if (r.status !== 0) return false;
+  const findExe = (dir) => {
+    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+      const fp = path.join(dir, e.name);
+      if (e.isDirectory()) {
+        const hit = findExe(fp);
+        if (hit) return hit;
+      } else if (e.name === `${dep}.exe`) return fp;
+    }
+    return null;
+  };
+  const exe = findExe(extract);
+  if (!exe) return false;
+  fs.mkdirSync(WIN_SKILLET_BIN(), { recursive: true });
+  fs.copyFileSync(exe, path.join(WIN_SKILLET_BIN(), `${dep}.exe`));
+  winAddPath(WIN_SKILLET_BIN());
+  return true;
+}
+
+// choco writes to C:\ProgramData — pointless without an elevated terminal.
+function winIsElevated() {
+  return spawnSync('net', ['session'], { stdio: 'pipe', shell: true }).status === 0;
 }
 
 // Add a dir to PATH for this process AND persist it to the user PATH so future
@@ -527,21 +577,27 @@ async function main() {
     let manual;
     if (process.platform === 'win32') {
       manual = dep === 'gh' ? 'winget install --id GitHub.cli -e' : 'winget install -e --id GLab.GLab';
-      let tried = 0;
       let lastErr = '';
       for (const [tool, argv] of WIN_INSTALL[dep]) {
         if (!hasCmd(tool)) continue;
-        tried++;
+        if (tool === 'choco' && !winIsElevated()) continue; // choco needs an admin terminal
         const r = spawnSync(tool, argv, { stdio: 'pipe', shell: true });
         if (r.status === 0) {
           ok = true;
           break;
         }
-        lastErr = `${r.stdout ?? ''}${r.stderr ?? ''}`.trim().split('\n').slice(-3).join(' ');
+        lastErr = `${r.stdout ?? ''}${r.stderr ?? ''}`.trim().split('\n').slice(-2).join(' ').slice(0, 200);
       }
       if (!ok) {
-        manual = tried === 0 ? `no winget/scoop/choco found — install one, then: ${manual}` : `${manual}${lastErr ? ` (last error: ${lastErr})` : ''}`;
+        // no manager worked — pull the official release binary directly
+        s.message(`${quip()}… downloading ${dep} release binary`);
+        try {
+          ok = await winBinaryInstall(dep);
+        } catch {
+          ok = false;
+        }
       }
+      if (!ok && lastErr) manual = `${manual} (last error: ${lastErr})`;
     } else {
       manual = `bash ${DEPS_SCRIPT} --${dep}`;
       try {
