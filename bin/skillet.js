@@ -80,6 +80,26 @@ function bail(msg) {
   process.exit(1);
 }
 
+// Kitchen-themed loading quips so nothing ever looks stuck.
+const QUIPS = [
+  'Preheating the skillet',
+  'Greasing the pan',
+  'Cracking the eggs',
+  'Whisking the config',
+  'Seasoning to taste',
+  'Flipping the pancakes',
+  'Taste-testing the symlinks',
+  'Sharpening the spatulas',
+  'Convincing Jira politely',
+  'Bribing the OAuth gods',
+  'Untangling the spaghetti',
+  'Feeding the agents',
+  'Simmering on low heat',
+  'Plating it up nicely',
+];
+let quipIdx = Math.floor(Math.random() * QUIPS.length);
+const quip = () => QUIPS[quipIdx++ % QUIPS.length];
+
 function detectedAgents() {
   return AGENTS.filter((a) => fs.existsSync(path.join(os.homedir(), ...a.detect))).map((a) => a.value);
 }
@@ -250,7 +270,13 @@ const CLI_AUTH = {
 // Interactive auth loop: verify → run login / show steps → confirm → re-verify.
 async function ensureAuth({ label, verify, login, steps, yes }) {
   for (let attempt = 0; attempt < 3; attempt++) {
-    if (verify && verify()) return `${label}: authenticated ✔`;
+    if (verify) {
+      const s = p.spinner();
+      s.start(`${quip()}… checking ${label} auth`);
+      const ok = verify();
+      s.stop(ok ? `${label} auth ✔` : `${label} auth not done yet`);
+      if (ok) return `${label}: authenticated ✔`;
+    }
     if (yes) return `${label}: PENDING — ${steps}`;
     if (login && hasCmd(login[0])) {
       const go = await p.confirm({ message: `${label} not authenticated. Run \`${login[0]} ${login[1].join(' ')}\` now?` });
@@ -394,6 +420,8 @@ async function main() {
         continue;
       }
     }
+    const sk = p.spinner();
+    sk.start(`${quip()}… installing ${name}`);
     fs.mkdirSync(target, { recursive: true });
     const template = fs.readFileSync(path.join(BUNDLED, name, 'SKILL.md.template'), 'utf8');
     const rendered = template
@@ -414,6 +442,7 @@ async function main() {
       }
     }
     installed.push(name);
+    sk.stop(`${name} ✔`);
   }
 
   // ralph scripts → project root (afk-ralph.sh is opt-in)
@@ -449,7 +478,7 @@ async function main() {
   if (selected.includes('jira-mcp')) {
     for (const a of agentDefs) {
       const s = p.spinner();
-      s.start(`Registering Atlassian MCP in ${a.label}…`);
+      s.start(`${quip()}… registering Atlassian MCP in ${a.label}`);
       try {
         const err = MCP_REGISTER[a.value](os.homedir());
         s.stop(err ? `${a.label}: MCP ✘` : `${a.label}: MCP ✔`);
@@ -493,7 +522,7 @@ async function main() {
       }
     }
     const s = p.spinner();
-    s.start(`Installing ${dep}…`);
+    s.start(`${quip()}… installing ${dep}`);
     let ok = false;
     let manual;
     if (process.platform === 'win32') {
