@@ -259,14 +259,21 @@ async function main() {
     const unknown = selected.filter((v) => !ALL.includes(v));
     if (unknown.length) bail(`Unknown items: ${unknown.join(', ')}`);
   } else {
-    const picked = await p.multiselect({
-      message: 'What to install? (all selected — uncheck to opt out)',
-      options: [...SKILLS, ...DEPS],
-      initialValues: DEFAULTS.filter((v) => !args.skip.has(v)),
+    const pickedSkills = await p.multiselect({
+      message: 'Which skills to install? (all selected — uncheck to opt out)',
+      options: SKILLS,
+      initialValues: SKILLS.map((s) => s.value).filter((v) => !args.skip.has(v)),
       required: false,
     });
-    if (p.isCancel(picked)) bail();
-    selected = picked;
+    if (p.isCancel(pickedSkills)) bail();
+    const pickedDeps = await p.multiselect({
+      message: 'Which integrations/CLIs to install? (uncheck to opt out)',
+      options: DEPS,
+      initialValues: DEPS.map((d) => d.value).filter((v) => DEFAULTS.includes(v) && !args.skip.has(v)),
+      required: false,
+    });
+    if (p.isCancel(pickedDeps)) bail();
+    selected = [...pickedSkills, ...pickedDeps];
   }
   if (!selected.length) bail('Nothing selected.');
 

@@ -7,7 +7,7 @@ npx github:umarbashirr/skillet
 ```
 
 ```
-◆  What to install? (all selected — uncheck to opt out)
+◆  Which skills to install? (all selected — uncheck to opt out)
 │  ◼ grill-me            relentless plan interview, Jira-seedable
 │  ◼ grill-with-docs     grilling that maintains CONTEXT.md/ADRs, Jira-seedable
 │  ◼ to-prd              conversation → PRD as Jira subtask
@@ -15,6 +15,8 @@ npx github:umarbashirr/skillet
 │  ◼ handoff             handoff doc + Jira handoff comments
 │  ◼ ralph-once          single Jira TDD Ralph iteration + loop scripts
 │  ◼ jira-ralph          TDD loop over Jira subtasks → draft PR
+
+◆  Which integrations/CLIs to install? (uncheck to opt out)
 │  ◼ Atlassian (Jira) MCP server
 │  ◼ gh CLI
 │  ◼ glab CLI
