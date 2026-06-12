@@ -7,8 +7,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const BUNDLED = path.join(__dirname, '..', 'skills', 'setup-xs-workflow', 'bundled');
-const DEPS_SCRIPT = path.join(__dirname, '..', 'skills', 'setup-xs-workflow', 'scripts', 'install-deps.sh');
+const BUNDLED = path.join(__dirname, '..', 'skills', 'skillet-setup', 'bundled');
+const DEPS_SCRIPT = path.join(__dirname, '..', 'skills', 'skillet-setup', 'scripts', 'install-deps.sh');
 
 const SKILLS = [
   { value: 'grill-me', label: 'grill-me', hint: 'relentless plan interview, Jira-seedable' },
@@ -63,7 +63,7 @@ function bail(msg) {
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
-  p.intro('🍳 skillet — XS agent workflow installer');
+  p.intro('🍳 skillet — agent workflow installer');
 
   // --- selection ---
   let selected;

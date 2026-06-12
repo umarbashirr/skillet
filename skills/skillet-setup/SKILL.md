@@ -1,12 +1,12 @@
 ---
-name: setup-xs-workflow
-description: Use when setting up the XS team agent workflow in a project — installs the grill-me, grill-with-docs, to-prd, to-issues, handoff, ralph-once, and jira-ralph skills, registers the Atlassian (Jira) MCP server, and installs the glab CLI. Run once per machine/project; also use when any of those skills are missing or Jira MCP is not connected.
+name: skillet-setup
+description: Use when setting up the skillet agent workflow in a project — installs the grill-me, grill-with-docs, to-prd, to-issues, handoff, ralph-once, and jira-ralph skills, registers the Atlassian (Jira) MCP server, and installs the glab CLI. Run once per machine/project; also use when any of those skills are missing or Jira MCP is not connected.
 disable-model-invocation: true
 ---
 
-# Setup XS Workflow
+# Skillet Setup
 
-One-shot installer for the XS plan→PRD→issues→implement agent workflow. Most of the bundled skills are by Matt Pocock (mattpocock/skills, aihero.dev), adapted for a Jira-based flow.
+One-shot installer for the skillet plan→PRD→issues→implement agent workflow. Most of the bundled skills are by Matt Pocock (mattpocock/skills, aihero.dev), adapted for a Jira-based flow.
 
 What gets installed:
 
@@ -99,4 +99,4 @@ Report each check's result to the user. If any fails, fix it before declaring su
 
 ## Credits
 
-grill-me, grill-with-docs, to-prd, to-issues, handoff and the Ralph technique are by Matt Pocock — https://github.com/mattpocock/skills and https://www.aihero.dev/getting-started-with-ralph. jira-ralph is an XS-team original inspired by the same.
+grill-me, grill-with-docs, to-prd, to-issues, handoff and the Ralph technique are by Matt Pocock — https://github.com/mattpocock/skills and https://www.aihero.dev/getting-started-with-ralph. jira-ralph is a team original inspired by the same.

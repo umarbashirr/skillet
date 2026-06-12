@@ -1,6 +1,6 @@
 # skillet 🍳
 
-One command to install the whole XS team agent workflow. Everything is pre-selected — uncheck what you don't want.
+One command to install the whole skillet agent workflow. Everything is pre-selected — uncheck what you don't want.
 
 ```bash
 npx skillet-cli
@@ -30,8 +30,8 @@ npx skillet-cli --only grill-me,to-prd --jira-project AB
 Alternative, skill-driven install (no Node needed):
 
 ```bash
-npx skills add <owner>/xs-agent-skills@setup-xs-workflow
-# then in Claude Code: /setup-xs-workflow
+npx skills add <owner>/skillet@skillet-setup
+# then in Claude Code: /skillet-setup
 ```
 
 ## What it installs
@@ -65,4 +65,4 @@ The installer asks for your Jira domain and project key and bakes them into the 
 
 ## Credits
 
-`grill-me`, `grill-with-docs`, `to-prd`, `to-issues`, `handoff`, and the Ralph technique are by [Matt Pocock](https://github.com/mattpocock/skills) ([aihero.dev — Getting Started with Ralph](https://www.aihero.dev/getting-started-with-ralph)). Jira adaptations and `jira-ralph` are XS-team additions. See [LICENSE](LICENSE).
+`grill-me`, `grill-with-docs`, `to-prd`, `to-issues`, `handoff`, and the Ralph technique are by [Matt Pocock](https://github.com/mattpocock/skills) ([aihero.dev — Getting Started with Ralph](https://www.aihero.dev/getting-started-with-ralph)). Jira adaptations and `jira-ralph` are our own additions. See [LICENSE](LICENSE).
