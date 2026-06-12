@@ -1,18 +1,20 @@
 #!/bin/bash
-# Installs system dependencies for the XS workflow:
-#   1. glab  — GitLab CLI (https://gitlab.com/gitlab-org/cli)
-#   2. Atlassian Rovo MCP server (Jira) registered with Claude Code
+# Installs system dependencies for the skillet workflow:
+#   1. glab — GitLab CLI (https://gitlab.com/gitlab-org/cli)
+#   2. gh   — GitHub CLI (https://cli.github.com)
+#   3. Atlassian Rovo MCP server (Jira) registered with Claude Code
 set -e
 
-# No args = install both. --glab / --mcp install only that piece.
-DO_GLAB=true; DO_MCP=true
+# No args = install everything. --glab / --gh / --mcp install only that piece.
+DO_GLAB=true; DO_GH=true; DO_MCP=true
 if [ $# -gt 0 ]; then
-  DO_GLAB=false; DO_MCP=false
+  DO_GLAB=false; DO_GH=false; DO_MCP=false
   for arg in "$@"; do
     case "$arg" in
       --glab) DO_GLAB=true ;;
+      --gh)   DO_GH=true ;;
       --mcp)  DO_MCP=true ;;
-      *) echo "Unknown flag: $arg (use --glab and/or --mcp)"; exit 1 ;;
+      *) echo "Unknown flag: $arg (use --glab, --gh and/or --mcp)"; exit 1 ;;
     esac
   done
 fi
@@ -40,6 +42,32 @@ else
     echo "Installed to ~/.local/bin/glab — ensure it is on PATH."
   fi
   echo "glab installed. Authenticate with: glab auth login"
+fi
+fi
+
+if $DO_GH; then
+echo "== gh (GitHub CLI) =="
+if command -v gh >/dev/null 2>&1; then
+  echo "gh already installed: $(gh --version | head -1)"
+else
+  if command -v brew >/dev/null 2>&1; then
+    brew install gh
+  elif command -v apt-get >/dev/null 2>&1; then
+    sudo apt-get update && sudo apt-get install -y gh
+  elif command -v dnf >/dev/null 2>&1; then
+    sudo dnf install -y gh
+  elif command -v snap >/dev/null 2>&1; then
+    sudo snap install gh
+  else
+    echo "No package manager found for gh. Installing latest binary from GitHub releases..."
+    ARCH=$(uname -m); case "$ARCH" in x86_64) ARCH=amd64;; aarch64|arm64) ARCH=arm64;; esac
+    OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+    VERSION=$(curl -s https://api.github.com/repos/cli/cli/releases/latest | grep -o '"tag_name": *"v[^"]*"' | head -1 | cut -d'"' -f4)
+    curl -sL "https://github.com/cli/cli/releases/download/${VERSION}/gh_${VERSION#v}_${OS}_${ARCH}.tar.gz" | tar -xz -C /tmp
+    mkdir -p "$HOME/.local/bin" && mv "/tmp/gh_${VERSION#v}_${OS}_${ARCH}/bin/gh" "$HOME/.local/bin/gh"
+    echo "Installed to ~/.local/bin/gh — ensure it is on PATH."
+  fi
+  echo "gh installed. Authenticate with: gh auth login"
 fi
 fi
 

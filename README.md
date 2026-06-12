@@ -16,16 +16,25 @@ npx github:umarbashirr/skillet
 │  ◼ ralph-once          single Jira TDD Ralph iteration + loop scripts
 │  ◼ jira-ralph          TDD loop over Jira subtasks → draft PR
 │  ◼ Atlassian (Jira) MCP server
+│  ◼ gh CLI
 │  ◼ glab CLI
+
+◆  Which agents to install for? (detected ones pre-selected)
+│  ◼ Claude Code    ◼ Cursor    ◼ VS Code Copilot    ◼ Codex    ◼ Antigravity
 ```
+
+The installer finishes every flow: skills are symlinked into each selected agent, the Atlassian MCP server is registered in each agent's own config format, `gh`/`glab` are installed — and each auth flow (`gh auth login`, `glab auth login`, Atlassian OAuth per agent) is run or walked through and verified before the installer declares success. Anything left pending is listed at the end.
 
 Non-interactive:
 
 ```bash
-npx github:umarbashirr/skillet --yes                          # everything, defaults
+npx github:umarbashirr/skillet --yes                          # everything, all detected agents
 npx github:umarbashirr/skillet --yes --skip glab,handoff      # opt out of items
 npx github:umarbashirr/skillet --only grill-me,to-prd --jira-project AB
+npx github:umarbashirr/skillet --yes --agents claude,cursor   # target specific agents
 ```
+
+(`--yes` cannot run interactive auth — pending auth steps are printed at the end.)
 
 Alternative, skill-driven install (no Node needed):
 
@@ -36,7 +45,7 @@ npx skills add umarbashirr/skillet@skillet-setup
 
 ## What it installs
 
-Skills — canonical copy in `~/.agents/skills/` (or `./.agents/skills/` with `--dest project`), symlinked into every detected agent (Claude Code, Cursor, Codex, OpenCode, Copilot, Gemini, Amp — skills.sh convention):
+Skills — canonical copy in `~/.agents/skills/` (or `./.agents/skills/` with `--dest project`), symlinked into every SELECTED agent (skills.sh convention):
 
 - **grill-me** — relentless plan interview, seedable from a Jira ticket URL
 - **grill-with-docs** — grilling that maintains CONTEXT.md and ADRs inline, seedable from a Jira ticket URL
@@ -48,8 +57,16 @@ Skills — canonical copy in `~/.agents/skills/` (or `./.agents/skills/` with `-
 
 System dependencies:
 
-- **Atlassian (Jira) MCP server** — `claude mcp add --transport http atlassian https://mcp.atlassian.com/v1/mcp`
-- **glab** — GitLab CLI
+- **Atlassian (Jira) MCP server** — registered per selected agent:
+  | Agent | Where | Shape |
+  |-------|-------|-------|
+  | Claude Code | `claude mcp add --transport http atlassian … --scope user` | HTTP, OAuth via `/mcp` |
+  | Cursor | `~/.cursor/mcp.json` | `mcpServers.atlassian.url`, OAuth in IDE |
+  | VS Code Copilot | `~/.config/Code/User/mcp.json` | `servers.atlassian` (type http), OAuth in IDE |
+  | Codex | `~/.codex/config.toml` | `[mcp_servers.atlassian]`, `codex mcp login atlassian` |
+  | Antigravity | `~/.gemini/config/mcp_config.json` | `mcp-remote` wrapper, OAuth on first use |
+- **gh** — GitHub CLI (+ `gh auth login` flow)
+- **glab** — GitLab CLI (+ `glab auth login` flow)
 
 The installer asks for your Jira domain and project key and bakes them into the skills (defaults: `xcelore.atlassian.net` / `XW`).
 

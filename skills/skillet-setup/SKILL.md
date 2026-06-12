@@ -1,6 +1,6 @@
 ---
 name: skillet-setup
-description: Use when setting up the skillet agent workflow in a project — installs the grill-me, grill-with-docs, to-prd, to-issues, handoff, ralph-once, and jira-ralph skills, registers the Atlassian (Jira) MCP server, and installs the glab CLI. Run once per machine/project; also use when any of those skills are missing or Jira MCP is not connected.
+description: Use when setting up the skillet agent workflow in a project — installs the grill-me, grill-with-docs, to-prd, to-issues, handoff, ralph-once, and jira-ralph skills for one or more agents (Claude Code, Cursor, VS Code Copilot, Codex, Antigravity), registers the Atlassian (Jira) MCP server in each, installs the gh and glab CLIs, and walks every auth flow to completion. Run once per machine/project; also use when any of those skills are missing or Jira MCP is not connected.
 disable-model-invocation: true
 ---
 
@@ -19,17 +19,18 @@ What gets installed:
 | `handoff` | Handoff doc for the next agent + Jira handoff comment and pause markers when story context exists |
 | `ralph-once` | One human-in-the-loop TDD Ralph iteration over a Jira story (PRD.md fallback) with stage comments + quality gates (+ `ralph-once.sh`, `afk-ralph.sh`) |
 | `jira-ralph` | TDD loop over ready-for-agent Jira subtasks → draft PR |
-| Atlassian MCP | Jira access for the skills above |
+| Atlassian MCP | Jira access for the skills above, registered per agent |
+| `gh` CLI | GitHub CLI for repos hosted on GitHub |
 | `glab` CLI | GitLab CLI for repos hosted on GitLab |
 
 ## Step 1: Ask configuration
 
-Ask the user (one question, two values, with defaults):
+Ask the user:
 
+- **Which agents?** — Claude Code, Cursor, VS Code Copilot, Codex, Antigravity. One or several; pre-select the ones whose config dirs exist (`~/.claude`, `~/.cursor`, `~/.config/Code`, `~/.codex`, `~/.gemini`).
 - **Jira domain** (default: `xcelore.atlassian.net`)
 - **Jira project key** (default: `XW`)
-
-Also ask: install skills **globally** (`~/.agents/skills/` — available in every project) or **project-local** (`./.agents/skills/`)? Default: global.
+- Install skills **globally** (`~/.agents/skills/` — available in every project) or **project-local** (`./.agents/skills/`)? Default: global.
 
 ## Step 2: Install the skills
 
@@ -51,17 +52,15 @@ cp "$BUNDLED/grill-with-docs/CONTEXT-FORMAT.md" "$BUNDLED/grill-with-docs/ADR-FO
 
 Do NOT skip a skill because a directory already exists — show the user a diff and ask overwrite/skip per conflict.
 
-Then symlink each installed skill into every agent detected on the machine (skills.sh convention). Detect by config dir; link `$DEST/<name>` into the agent's skills dir:
+Then symlink each installed skill into every agent the user selected (skills.sh convention). Link `$DEST/<name>` into the agent's skills dir:
 
-| Agent | Detect | Skills dir |
-|-------|--------|-----------|
-| Claude Code | `~/.claude` | `~/.claude/skills/` |
-| Cursor | `~/.cursor` | `~/.cursor/skills/` |
-| Codex | `~/.codex` | `~/.codex/skills/` |
-| OpenCode | `~/.config/opencode` | `~/.config/opencode/skill/` |
-| Copilot | `~/.copilot` | `~/.copilot/skills/` |
-| Gemini | `~/.gemini` | `~/.gemini/skills/` |
-| Amp | `~/.config/amp` | `~/.config/amp/skills/` |
+| Agent | Skills dir |
+|-------|-----------|
+| Claude Code | `~/.claude/skills/` |
+| Cursor | `~/.cursor/skills/` |
+| VS Code Copilot | `~/.copilot/skills/` |
+| Codex | `~/.codex/skills/` |
+| Antigravity | `~/.gemini/skills/` |
 
 ```bash
 ln -sfn "$DEST/<name>" "<agent-skills-dir>/<name>"
@@ -83,26 +82,36 @@ If the project has a `.gitignore`, do not ignore `progress.txt` — it is meant 
 
 ## Step 4: Install system dependencies
 
-Run the bundled script (it is idempotent — safe to re-run):
+CLIs — run the bundled script (idempotent, safe to re-run): `bash "<this-skill-dir>/scripts/install-deps.sh" --gh --glab`. If it needs `sudo` and cannot get it, tell the user which command to run manually.
 
-```bash
-bash "<this-skill-dir>/scripts/install-deps.sh"
-```
+Atlassian MCP — register in EACH selected agent:
 
-It installs `glab` (brew/apt/dnf/snap/binary fallback) and registers the Atlassian MCP server:
+| Agent | How |
+|-------|-----|
+| Claude Code | `claude mcp add --transport http atlassian https://mcp.atlassian.com/v1/mcp --scope user` |
+| Cursor | merge into `~/.cursor/mcp.json`: `mcpServers.atlassian = {"url": "https://mcp.atlassian.com/v1/mcp"}` |
+| VS Code Copilot | merge into `~/.config/Code/User/mcp.json` (mac: `~/Library/Application Support/Code/User/`): `servers.atlassian = {"type": "http", "url": "https://mcp.atlassian.com/v1/mcp"}` |
+| Codex | append to `~/.codex/config.toml`: `[mcp_servers.atlassian]` + `url = "https://mcp.atlassian.com/v1/mcp"` |
+| Antigravity | merge into `~/.gemini/config/mcp_config.json`: `mcpServers.atlassian = {"command": "npx", "args": ["-y", "mcp-remote", "https://mcp.atlassian.com/v1/sse"]}` |
 
-```bash
-claude mcp add --transport http atlassian https://mcp.atlassian.com/v1/mcp --scope user
-```
+Merge JSON configs — never clobber existing servers.
 
-If the script needs `sudo` and cannot get it, tell the user which command to run manually.
+## Step 5: Complete EVERY auth flow
 
-## Step 5: Post-install checklist (tell the user)
+Do not declare success with pending auth. For each, verify → guide → re-verify:
 
-1. Run `/mcp` in Claude Code and complete the Atlassian OAuth login.
-2. Run `glab auth login` if the project is on GitLab.
-3. Restart the Claude Code session so the new skills are picked up.
-4. Workflow order: `/grill-me <jira-url>` → `/to-prd` → `/to-issues` → `/jira-ralph <STORY-KEY>` (or `/ralph-once <STORY-KEY>` for one-subtask-at-a-time TDD; PRD.md mode when no key). `/handoff` when switching sessions.
+1. **gh** — `gh auth status`; if it fails, run `gh auth login` with the user and re-check.
+2. **glab** — `glab auth status`; if it fails, run `glab auth login` and re-check (only if project is on GitLab).
+3. **Atlassian per agent**:
+   - Claude Code: user runs `/mcp` → atlassian → browser OAuth. Verify: `claude mcp list` shows atlassian connected.
+   - Codex: `codex mcp login atlassian`. Verify: `codex mcp list`.
+   - Cursor / VS Code Copilot / Antigravity: OAuth happens in the IDE (Cursor: Settings → MCP → Login; VS Code: "MCP: List Servers" → start atlassian; Antigravity: first tool use triggers mcp-remote browser OAuth). Walk the user through and ask them to confirm completion.
+
+## Step 6: Post-install checklist (tell the user)
+
+1. Restart agent sessions so the new skills are picked up.
+2. Workflow order: `/grill-me <jira-url>` → `/to-prd` → `/to-issues` → `/jira-ralph <STORY-KEY>` (or `/ralph-once <STORY-KEY>` for one-subtask-at-a-time TDD; PRD.md mode when no key). `/handoff` when switching sessions.
+3. List anything still pending auth, with the exact command or click-path.
 
 ## Verify
 
