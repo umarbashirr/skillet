@@ -84,8 +84,10 @@ function detectedAgents() {
   return AGENTS.filter((a) => fs.existsSync(path.join(os.homedir(), ...a.detect))).map((a) => a.value);
 }
 
-// Symlink canonical skill dir into an agent's skills dir. Replaces stale symlinks;
+// Link canonical skill dir into an agent's skills dir. Replaces stale links;
 // replaces real dirs only when allowed (caller decided overwrite).
+// Windows: plain symlinks need admin/Developer Mode (EPERM otherwise), so use a
+// directory junction there; if even that fails, fall back to a plain copy.
 function linkSkill(canonical, agentSkillsDir, name, overwrite) {
   const target = path.join(agentSkillsDir, name);
   fs.mkdirSync(agentSkillsDir, { recursive: true });
@@ -95,7 +97,15 @@ function linkSkill(canonical, agentSkillsDir, name, overwrite) {
     else if (overwrite) fs.rmSync(target, { recursive: true });
     else return false;
   }
-  fs.symlinkSync(canonical, target, 'dir');
+  if (process.platform === 'win32') {
+    try {
+      fs.symlinkSync(canonical, target, 'junction');
+    } catch {
+      fs.cpSync(canonical, target, { recursive: true });
+    }
+  } else {
+    fs.symlinkSync(canonical, target, 'dir');
+  }
   return true;
 }
 
