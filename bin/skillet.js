@@ -24,6 +24,8 @@ const SKILLS = [
   { value: 'tdd', label: 'tdd', hint: 'red-green-refactor TDD discipline' },
   { value: 'prototype', label: 'prototype', hint: 'throwaway prototypes — terminal logic or UI variations' },
   { value: 'caveman', label: 'caveman', hint: 'ultra-compressed responses, ~75% fewer tokens' },
+  { value: 'nextjs-16', label: 'nextjs-16', hint: 'Next.js 16 App Router expert knowledge base' },
+  { value: 'nextjs-playbooks', label: 'nextjs-playbooks', hint: 'Next.js 16 step-by-step build/migrate procedures' },
 ];
 const DEPS = [
   { value: 'jira-mcp', label: 'Atlassian (Jira) MCP server', hint: 'registered in every selected agent' },

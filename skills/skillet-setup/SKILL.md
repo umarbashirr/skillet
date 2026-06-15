@@ -1,6 +1,6 @@
 ---
 name: skillet-setup
-description: Use when setting up the skillet agent workflow in a project — installs the grill-me, grill-with-docs, to-prd, to-issues, handoff, ralph-once, jira-ralph, tdd, prototype, and caveman skills for one or more agents (Claude Code, Cursor, VS Code Copilot, Codex, Antigravity), registers the Atlassian (Jira) MCP server in each, installs the gh and glab CLIs, and walks every auth flow to completion. Run once per machine/project; also use when any of those skills are missing or Jira MCP is not connected.
+description: Use when setting up the skillet agent workflow in a project — installs the grill-me, grill-with-docs, to-prd, to-issues, handoff, ralph-once, jira-ralph, tdd, prototype, caveman, nextjs-16, and nextjs-playbooks skills for one or more agents (Claude Code, Cursor, VS Code Copilot, Codex, Antigravity), registers the Atlassian (Jira) MCP server in each, installs the gh and glab CLIs, and walks every auth flow to completion. Run once per machine/project; also use when any of those skills are missing or Jira MCP is not connected.
 disable-model-invocation: true
 ---
 
@@ -22,6 +22,8 @@ What gets installed:
 | `tdd` | Red-green-refactor TDD discipline (vertical slices, behavior-not-implementation tests) |
 | `prototype` | Throwaway prototypes — interactive terminal app for logic/state questions, or multiple UI variations on one route |
 | `caveman` | Ultra-compressed response mode, ~75% fewer tokens, full technical accuracy |
+| `nextjs-16` | Next.js 16 App Router expert knowledge base (SKILL + reference docs) |
+| `nextjs-playbooks` | Next.js 16 step-by-step procedures: scaffold-route, cache-components-setup, server-actions-forms, pages-to-app, v16-upgrade |
 | Atlassian MCP | Jira access for the skills above, registered per agent |
 | `gh` CLI | GitHub CLI for repos hosted on GitHub |
 | `glab` CLI | GitLab CLI for repos hosted on GitLab |
@@ -39,7 +41,7 @@ Ask the user:
 
 Let `DEST` be the chosen skills directory and `BUNDLED` be the `bundled/` directory next to this SKILL.md.
 
-For each of `grill-me`, `grill-with-docs`, `to-prd`, `to-issues`, `handoff`, `ralph-once`, `jira-ralph`, `tdd`, `prototype`, `caveman`:
+For each of `grill-me`, `grill-with-docs`, `to-prd`, `to-issues`, `handoff`, `ralph-once`, `jira-ralph`, `tdd`, `prototype`, `caveman`, `nextjs-16`, `nextjs-playbooks`:
 
 ```bash
 mkdir -p "$DEST/<name>"
@@ -53,6 +55,8 @@ Then copy supporting files verbatim (everything in the bundled skill dir except 
 cp "$BUNDLED/grill-with-docs/CONTEXT-FORMAT.md" "$BUNDLED/grill-with-docs/ADR-FORMAT.md" "$DEST/grill-with-docs/"
 cp "$BUNDLED"/tdd/{deep-modules,interface-design,mocking,refactoring,tests}.md "$DEST/tdd/"
 cp "$BUNDLED"/prototype/{LOGIC,UI}.md "$DEST/prototype/"
+cp "$BUNDLED"/nextjs-16/{v16-changes,cache-and-rendering,routing-and-data,apis-metadata-assets,config-cli-deploy,doc-map}.md "$DEST/nextjs-16/"
+cp "$BUNDLED"/nextjs-playbooks/{scaffold-route,cache-components-setup,server-actions-forms,pages-to-app,v16-upgrade}.md "$DEST/nextjs-playbooks/"
 ```
 
 Do NOT skip a skill because a directory already exists — show the user a diff and ask overwrite/skip per conflict.
@@ -133,8 +137,8 @@ Do not declare success with pending auth. For each, verify → guide → re-veri
 ## Verify
 
 ```bash
-ls "$DEST" | grep -cE 'grill-me|grill-with-docs|to-prd|to-issues|handoff|ralph-once|jira-ralph|tdd|prototype|caveman'   # expect 10
-grep -L '{{JIRA' "$DEST"/{grill-me,grill-with-docs,to-prd,to-issues,handoff,ralph-once,jira-ralph,tdd,prototype,caveman}/SKILL.md # all listed = no leftover placeholders
+ls "$DEST" | grep -cE 'grill-me|grill-with-docs|to-prd|to-issues|handoff|ralph-once|jira-ralph|tdd|prototype|caveman|nextjs-16|nextjs-playbooks'   # expect 12
+grep -L '{{JIRA' "$DEST"/{grill-me,grill-with-docs,to-prd,to-issues,handoff,ralph-once,jira-ralph,tdd,prototype,caveman,nextjs-16,nextjs-playbooks}/SKILL.md # all listed = no leftover placeholders
 claude mcp list | grep -i atlassian
 command -v glab
 ```
