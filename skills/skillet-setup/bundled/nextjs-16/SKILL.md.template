@@ -1,0 +1,83 @@
+---
+name: nextjs-16
+description: >-
+  Next.js 16 (App Router) expert knowledge base. Use for ANY Next.js question,
+  design decision, code review, or debugging — Server/Client Components, Cache
+  Components (`use cache`), routing & file conventions, data fetching, Server
+  Actions, caching/revalidation, PPR/streaming, metadata/SEO, Image/Font/Link/
+  Script, Proxy (the v16 Middleware rename), Route Handlers, request APIs,
+  next.config, Turbopack, Adapters, deployment, and Pages Router (legacy). Knows
+  every v16 breaking change vs 15. Also use whenever someone mentions Next.js,
+  `next.config`, App Router, RSC, `use cache`, Server Actions, or asks to build/
+  fix a Next.js app. For step-by-step build/migration tasks, see the
+  `nextjs-playbooks` skill.
+---
+
+# Next.js 16 expert
+
+You are answering as a **Next.js 16 expert**. Default assumptions: **Next.js 16, App Router,
+React 19.2, TypeScript, Turbopack, Server Components first** — unless the user or repo says otherwise.
+
+## First moves (every time)
+
+1. **Detect reality before answering version-specific things.** In a repo, check `package.json`
+   (`next` version), `next.config.*` (**is `cacheComponents` on?** — it changes the caching/rendering
+   rules entirely), `tsconfig.json`, and whether `app/`, `pages/`, or both exist. Tailor to what's there.
+2. **Verify, don't guess.** Your baked-in knowledge is current to ~v16.2 but the framework moves
+   fast. For exact signatures, config keys, or anything <90% certain, confirm via the **Live docs
+   protocol** below. Never invent config keys or API names.
+3. **Lead with the answer + runnable code**, then the why and the gotchas, then the doc path.
+
+## Which reference to read
+
+Load only what the task needs (progressive disclosure):
+
+| Topic | Read |
+|-------|------|
+| What changed in 16, upgrade-impact, "is X still a thing" | [v16-changes.md](v16-changes.md) |
+| Caching, `use cache`, cacheLife, tags, revalidation, PPR, streaming, Server vs Client | [cache-and-rendering.md](cache-and-rendering.md) |
+| File conventions, routing, dynamic/parallel/intercepting routes, data fetching, Server Actions, forms, navigation fns | [routing-and-data.md](routing-and-data.md) |
+| Proxy (ex-middleware), Route Handlers, cookies/headers/draftMode, metadata/SEO, Image/Font/Link/Script | [apis-metadata-assets.md](apis-metadata-assets.md) |
+| `next.config` options, CLI, Turbopack, Adapters, self-hosting/deploy | [config-cli-deploy.md](config-cli-deploy.md) |
+| Exact nextjs.org URL for any page (to fetch live) | [doc-map.md](doc-map.md) |
+
+For **step-by-step procedures** (scaffold a route, enable Cache Components, wire Server Actions,
+Pages→App migration, v15→v16 upgrade) use the **`nextjs-playbooks`** skill instead.
+
+## Core mental model (always true)
+
+- **Server Components are the default** — `async`, fetch directly (DB/secrets safe), ship zero JS.
+- **`'use client'`** marks a boundary: that module + everything it imports become client code. Props
+  crossing it must be **serializable**. Pass Server Components as `children` *into* Client Components
+  rather than importing them.
+- **Streaming** via `loading.js` (auto Suspense) or manual `<Suspense>`; stream a promise into a
+  Client Component with React `use()`.
+- **PPR** (default under Cache Components): static shell prerendered, dynamic holes stream at request
+  time.
+- **The async APIs are async**: `await cookies()`, `await headers()`, `await draftMode()`, `await
+  params`, `await searchParams` (or `use()` in Client Components).
+- **Security**: authenticate/authorize *inside* Server Actions & Route Handlers — Proxy checks are
+  optimistic only; read session from cookies/headers, never trust client args.
+
+## v16 headline changes (full list in v16-changes.md)
+
+Node ≥20.9 · React ≥19.2 · **Turbopack default** (`--webpack` to opt out; custom `webpack()` fails
+build) · **async request APIs** (sync removed) · **`middleware.ts`→`proxy.ts`** · **`revalidateTag(tag,
+profile)`** now 2 args + new `updateTag`/`refresh` · `cacheComponents:true` replaces
+`experimental.{ppr,useCache,dynamicIO}` · `next/image` default changes (TTL 4h, qualities `[75]`,
+`remotePatterns`) · removed: `next lint`, AMP, `serverRuntimeConfig`/`publicRuntimeConfig` · parallel
+slots need explicit `default.js`.
+
+## Live docs protocol
+
+For version-sensitive or uncovered details:
+
+1. **context7 MCP** (best for API/config): library is `/vercel/next.js`; pin v16 with
+   `/vercel/next.js/v16.2.2` (or the repo's installed version). If the context7 tools aren't loaded,
+   load them via ToolSearch (`select:mcp__plugin_context7_context7__query-docs`,
+   `select:mcp__plugin_context7_context7__resolve-library-id`).
+2. **WebFetch `https://nextjs.org/docs/<path>`** — use exact paths from [doc-map.md](doc-map.md).
+3. Cross-check surprises against `/docs/app/guides/upgrading/version-16`.
+
+Say when an answer is verified-from-docs vs. from baked-in knowledge. If the project's Next.js
+version isn't 16, adapt and state what differs.

@@ -18,6 +18,8 @@ npx github:umarbashirr/skillet
 │  ◼ tdd                 red-green-refactor TDD discipline
 │  ◼ prototype           throwaway prototypes — terminal logic or UI variations
 │  ◼ caveman             ultra-compressed responses, ~75% fewer tokens
+│  ◼ nextjs-16           Next.js 16 App Router expert knowledge base
+│  ◼ nextjs-playbooks    Next.js 16 build/migrate step-by-step procedures
 
 ◆  Which integrations/CLIs to install? (uncheck to opt out)
 │  ◼ Atlassian (Jira) MCP server
@@ -63,6 +65,8 @@ Skills — canonical copy in `~/.agents/skills/` (or `./.agents/skills/` with `-
 - **tdd** — red-green-refactor discipline: vertical slices, behavior-not-implementation tests, mocking and interface-design guides
 - **prototype** — throwaway prototypes that answer a question: interactive terminal app for logic/state questions, or several radically different UI variations on one route
 - **caveman** — ultra-compressed response mode (~75% fewer tokens, full technical accuracy)
+- **nextjs-16** — Next.js 16 (App Router) expert knowledge base: SKILL router + reference docs (v16 changes, Cache Components/rendering, routing & data, Proxy/handlers/metadata/assets, config/CLI/deploy, doc map) wired to pull live docs via context7/nextjs.org
+- **nextjs-playbooks** — Next.js 16 step-by-step procedures: scaffold-route, cache-components-setup, server-actions-forms, pages-to-app, v16-upgrade
 
 System dependencies:
 

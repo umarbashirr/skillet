@@ -1,7 +1,7 @@
 {
   "name": "skillet-cli",
   "version": "0.1.0",
-  "description": "Interactive installer for the skillet agent workflow: grill-me, grill-with-docs, to-prd, to-issues, handoff, ralph-once, jira-ralph, tdd, prototype, caveman + Jira MCP and glab CLI",
+  "description": "Interactive installer for the skillet agent workflow: grill-me, grill-with-docs, to-prd, to-issues, handoff, ralph-once, jira-ralph, tdd, prototype, caveman, nextjs-16, nextjs-playbooks + Jira MCP and glab CLI",
   "type": "module",
   "bin": {
     "skillet": "bin/skillet.js"
