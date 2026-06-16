@@ -24,6 +24,10 @@ What gets installed:
 | `caveman` | Ultra-compressed response mode, ~75% fewer tokens, full technical accuracy |
 | `nextjs-16` | Next.js 16 App Router expert knowledge base (SKILL + reference docs) |
 | `nextjs-playbooks` | Next.js 16 step-by-step procedures: scaffold-route, cache-components-setup, server-actions-forms, pages-to-app, v16-upgrade |
+| `frontend-design` | Distinctive, intentional visual design guidance for building/reshaping UI — by Anthropic |
+| `vercel-react-best-practices` | React/Next.js performance optimization rules (rerender, rendering, server, bundle, async) — by Vercel |
+| `web-design-guidelines` | Review UI code against the Web Interface Guidelines (accessibility, UX, design audit) — by Vercel |
+| `agent-browser` | Browser automation CLI for agents (navigate, fill forms, screenshot, scrape, test) — by Vercel Labs |
 | `husky-setup` | `/husky-setup` skill — scaffolds husky git hooks (lint/format/secret-scan + commit standards + typecheck + size gates) into a JS project |
 | `spring-boot` | Spring Boot expert knowledge base (auto-config, REST/web, DI, config & Actuator) + reference docs |
 | `jpa-hibernate` | JPA/Hibernate & Spring Data JPA expert (entity mapping, queries, N+1, transactions) + reference docs |
@@ -47,7 +51,7 @@ Ask the user:
 
 Let `DEST` be the chosen skills directory and `BUNDLED` be the `bundled/` directory next to this SKILL.md.
 
-For each of `grill-me`, `grill-with-docs`, `to-prd`, `to-issues`, `handoff`, `ralph-once`, `jira-ralph`, `tdd`, `prototype`, `caveman`, `nextjs-16`, `nextjs-playbooks`, `husky-setup`, `spring-boot`, `jpa-hibernate`, `java-build`, `junit-testing`:
+For each of `grill-me`, `grill-with-docs`, `to-prd`, `to-issues`, `handoff`, `ralph-once`, `jira-ralph`, `tdd`, `prototype`, `caveman`, `nextjs-16`, `nextjs-playbooks`, `frontend-design`, `vercel-react-best-practices`, `web-design-guidelines`, `agent-browser`, `husky-setup`, `spring-boot`, `jpa-hibernate`, `java-build`, `junit-testing`:
 
 ```bash
 mkdir -p "$DEST/<name>"
@@ -63,6 +67,8 @@ cp "$BUNDLED"/tdd/{deep-modules,interface-design,mocking,refactoring,tests}.md "
 cp "$BUNDLED"/prototype/{LOGIC,UI}.md "$DEST/prototype/"
 cp "$BUNDLED"/nextjs-16/{v16-changes,cache-and-rendering,routing-and-data,apis-metadata-assets,config-cli-deploy,doc-map}.md "$DEST/nextjs-16/"
 cp "$BUNDLED"/nextjs-playbooks/{scaffold-route,cache-components-setup,server-actions-forms,pages-to-app,v16-upgrade}.md "$DEST/nextjs-playbooks/"
+cp "$BUNDLED/frontend-design/LICENSE.txt" "$DEST/frontend-design/"
+cp -R "$BUNDLED"/vercel-react-best-practices/{AGENTS.md,metadata.json,README.md,rules} "$DEST/vercel-react-best-practices/"
 cp "$BUNDLED"/spring-boot/{web-rest,config-actuator,di-autoconfig}.md "$DEST/spring-boot/"
 cp "$BUNDLED"/jpa-hibernate/{entities-mapping,repositories-queries,transactions}.md "$DEST/jpa-hibernate/"
 cp "$BUNDLED"/java-build/{maven,gradle,deps-ci}.md "$DEST/java-build/"
@@ -150,8 +156,8 @@ Do not declare success with pending auth. For each, verify → guide → re-veri
 ## Verify
 
 ```bash
-ls "$DEST" | grep -cE 'grill-me|grill-with-docs|to-prd|to-issues|handoff|ralph-once|jira-ralph|tdd|prototype|caveman|nextjs-16|nextjs-playbooks|husky-setup|spring-boot|jpa-hibernate|java-build|junit-testing'   # expect 17
-grep -L '{{JIRA' "$DEST"/{grill-me,grill-with-docs,to-prd,to-issues,handoff,ralph-once,jira-ralph,tdd,prototype,caveman,nextjs-16,nextjs-playbooks,husky-setup,spring-boot,jpa-hibernate,java-build,junit-testing}/SKILL.md # all listed = no leftover placeholders
+ls "$DEST" | grep -cE 'grill-me|grill-with-docs|to-prd|to-issues|handoff|ralph-once|jira-ralph|tdd|prototype|caveman|nextjs-16|nextjs-playbooks|frontend-design|vercel-react-best-practices|web-design-guidelines|agent-browser|husky-setup|spring-boot|jpa-hibernate|java-build|junit-testing'   # expect 21
+grep -L '{{JIRA' "$DEST"/{grill-me,grill-with-docs,to-prd,to-issues,handoff,ralph-once,jira-ralph,tdd,prototype,caveman,nextjs-16,nextjs-playbooks,frontend-design,vercel-react-best-practices,web-design-guidelines,agent-browser,husky-setup,spring-boot,jpa-hibernate,java-build,junit-testing}/SKILL.md # all listed = no leftover placeholders
 claude mcp list | grep -i atlassian
 command -v glab
 ```
