@@ -1,7 +1,7 @@
 {
   "name": "skillet-cli",
   "version": "0.1.0",
-  "description": "Interactive installer for the skillet agent workflow: grill-me, grill-with-docs, to-prd, to-issues, handoff, ralph-once, jira-ralph, tdd, prototype, caveman, nextjs-16, nextjs-playbooks, husky-setup, frontend-design, vercel-react-best-practices, web-design-guidelines, agent-browser + Jira MCP, gh/glab CLIs and husky git hooks",
+  "description": "Interactive installer for the skillet agent workflow: grill-me, grill-with-docs, to-prd, to-issues, handoff, ralph-once, jira-ralph, tdd, prototype, caveman, nextjs-16, nextjs-playbooks, husky-setup, frontend-design, vercel-react-best-practices, web-design-guidelines, agent-browser, spring-boot, jpa-hibernate, java-build, junit-testing + Jira MCP, gh/glab CLIs and husky git hooks",
   "type": "module",
   "bin": {
     "skillet": "bin/skillet.js"

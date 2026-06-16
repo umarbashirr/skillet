@@ -25,6 +25,10 @@ npx github:umarbashirr/skillet
 │  ◻ vercel-react-best-practices  React/Next.js performance rules — Vercel
 │  ◻ web-design-guidelines        audit UI against Web Interface Guidelines — Vercel
 │  ◻ agent-browser       browser automation CLI for agents — Vercel Labs
+│  ◻ spring-boot         Spring Boot expert — auto-config, REST, DI, Actuator
+│  ◻ jpa-hibernate       JPA/Hibernate + Spring Data — mapping, queries, N+1, tx
+│  ◻ java-build          Java build — Maven & Gradle, deps, plugins, CI
+│  ◻ junit-testing       Java testing — JUnit 5, Mockito, Spring Boot Test
 
 ◆  Which integrations/CLIs to install? (uncheck to opt out)
 │  ◼ Atlassian (Jira) MCP server
@@ -79,6 +83,10 @@ Skills — canonical copy in `~/.agents/skills/` (or `./.agents/skills/` with `-
 - **vercel-react-best-practices** — React/Next.js performance optimization rules (rerender, rendering, server, bundle, async) — by [Vercel](https://github.com/vercel-labs/agent-skills)
 - **web-design-guidelines** — review UI code against the Web Interface Guidelines (accessibility, UX, design audit) — by [Vercel](https://github.com/vercel-labs/agent-skills)
 - **agent-browser** — browser automation CLI for agents (navigate, fill forms, screenshot, scrape, test web apps) — by [Vercel Labs](https://github.com/vercel-labs/agent-browser); needs the `agent-browser` CLI at runtime (`npx agent-browser`)
+- **spring-boot** — Spring Boot expert knowledge base: SKILL router + reference docs (REST/web, configuration & Actuator, DI & auto-configuration); detects the project's Boot/Java version and build tool, pulls live docs via context7/docs.spring.io
+- **jpa-hibernate** — JPA / Hibernate & Spring Data JPA expert: entity mapping & relationships, repositories & queries (JPQL/derived/native), the N+1 problem, transactions & the persistence context
+- **java-build** — Maven & Gradle build expert: lifecycle/tasks, dependency management & scopes, plugins, BOMs, multi-module, the Spring Boot build plugins, and CI
+- **junit-testing** — Java testing expert: JUnit 5 (Jupiter), Mockito, and Spring Boot test support (slice tests, MockMvc, Testcontainers); pairs with the `tdd` skill for red-green-refactor discipline
 
 System dependencies:
 

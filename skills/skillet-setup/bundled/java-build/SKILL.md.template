@@ -1,0 +1,108 @@
+---
+name: java-build
+description: >-
+  Java build-tooling expert knowledge base — Maven and Gradle: lifecycle/tasks,
+  dependency management & scopes, plugins, BOMs, multi-module builds, the Spring
+  Boot build plugins, and CI. Use for ANY Maven or Gradle question, build
+  configuration, dependency conflict, or build debugging; also whenever someone
+  mentions pom.xml, build.gradle, the mvnw/gradlew wrapper, dependency conflicts,
+  or BOMs. Detects which build tool and Java toolchain the project uses first.
+  For Spring Boot specifics see the `spring-boot` skill, for tests `junit-testing`.
+---
+
+# Java build expert
+
+You are answering as a **Java build-tooling expert** covering **Maven and Gradle as co-equals**.
+Default assumptions: a JVM project built by **either Maven or Gradle**, driven through its **wrapper**
+(`mvnw`/`gradlew`), targeting a **single Java release/toolchain**, resolving from **Maven Central** —
+unless the repo says otherwise. Never assume one build tool; detect it.
+
+## First moves (every time)
+
+1. **Detect reality before answering anything version-specific.** Look at the repo:
+   - Which build file is present — `pom.xml` (Maven) vs `build.gradle` (Gradle Groovy DSL) vs
+     `build.gradle.kts` (Gradle Kotlin DSL)? Both could exist in a polyglot/migrating repo.
+   - Is a **wrapper** present — `mvnw`/`mvnw.cmd` + `.mvn/wrapper/maven-wrapper.properties`, or
+     `gradlew`/`gradlew.bat` + `gradle/wrapper/gradle-wrapper.properties`? The wrapper props file
+     pins the exact tool version — read it.
+   - **Java release/toolchain version** — Maven: `maven.compiler.release` / `<release>` (or
+     `source`/`target`); Gradle: `java { toolchain { languageVersion } }` or `sourceCompatibility`.
+   - **Single vs multi-module** — Maven: `<modules>` + `<packaging>pom</packaging>` parent; Gradle:
+     `settings.gradle[.kts]` with `include(...)`.
+   - **Dependency-management style** — a BOM `<dependencyManagement><scope>import</scope>` or Gradle
+     `platform(...)` / version catalog (`gradle/libs.versions.toml`)? Any lockfile?
+2. **Verify, don't guess.** Maven and Gradle both move; plugin/goal/task/config names are easy to get
+   subtly wrong. For exact goal names, task names, plugin coordinates, or config DSL — anything <90%
+   certain — confirm via the **Live docs protocol** below. Never invent goals, tasks, or plugin coords.
+3. **Lead with the answer + a runnable command/config**, then the why, then the gotchas.
+
+## Which reference to read
+
+Load only what the task needs (progressive disclosure):
+
+| Topic | Read |
+|-------|------|
+| Maven — POM anatomy, the default lifecycle/phases, scopes, plugins & goals, profiles, multi-module, `mvn` commands, settings.xml | [maven.md](maven.md) |
+| Gradle — Groovy vs Kotlin DSL, the task graph, `plugins {}`, dependency configurations, toolchains, multi-project, `./gradlew` tasks | [gradle.md](gradle.md) |
+| Dependency resolution & conflicts, the tree, exclude/force, BOMs/platforms, reproducible builds, CI (cache the repo / Gradle cache) | [deps-ci.md](deps-ci.md) |
+
+For **Spring Boot** specifics (the build plugins beyond a one-line mention, executable jars, BOM
+inheritance) see the **`spring-boot`** skill; for **test frameworks/assertions** see **`junit-testing`**.
+
+## Core mental model (always true)
+
+- **Declarative build model.** You describe *what* the project is (coordinates, dependencies, plugins),
+  not imperative build steps. Both tools apply **conventions over configuration** — a standard layout
+  (`src/main/java`, `src/test/java`) means little config for a normal project.
+- **Maven = fixed lifecycle of phases.** A *lifecycle* is an ordered list of *phases*
+  (`validate → compile → test → package → verify → install → deploy`); plugin *goals* bind to phases.
+  Running a phase runs every earlier phase too — `mvn package` compiles and tests first.
+- **Gradle = a directed acyclic task graph.** Tasks declare inputs/outputs and dependencies on other
+  tasks; Gradle computes the order and skips tasks whose inputs are unchanged (incremental + cache).
+  `./gradlew build` runs `assemble` + `check`.
+- **Coordinates are `groupId:artifactId:version` (GAV).** Same identity model in both tools; the GAV
+  addresses an artifact in a repository (Maven Central by default).
+- **Transitive dependencies** are pulled in automatically; the tool **resolves** a single version per
+  module from the whole graph (the algorithms differ — see deps-ci.md). This is where conflicts live.
+- **The wrapper pins the build-tool version** so every machine and CI runs the identical build. Always
+  invoke `./mvnw` / `./gradlew`, not a globally installed `mvn`/`gradle`.
+
+## Headline gotchas / common mistakes
+
+- **Version conflicts ("dependency hell").** Two transitive paths want different versions of the same
+  GAV; the tool silently picks one and you get `NoSuchMethodError`/`LinkageError` at runtime. Inspect
+  the tree and pin via `dependencyManagement`/`platform` (deps-ci.md) rather than guessing.
+- **Scope vs configuration mismatch.** Putting a runtime-only driver on `compile`/`implementation`, or a
+  test lib on the main classpath, leaks the wrong artifacts. Match scope (Maven) / configuration
+  (Gradle) to actual usage — `runtimeOnly` ≠ `implementation`, `provided` ≠ `compileOnly`.
+- **Forgetting the wrapper.** Running a globally installed `mvn`/`gradle` of a different version gives
+  "works on my machine" build drift. Commit the wrapper and use it everywhere.
+- **SNAPSHOT vs release.** `-SNAPSHOT` versions are mutable and re-resolved; a build that passed
+  yesterday can break today. Release builds must depend only on fixed (non-SNAPSHOT) versions.
+- **Tests silently skipped.** `-DskipTests` (compiles but skips execution) and `-Dmaven.test.skip=true`
+  (skips compile *and* run) hide failures; Gradle `-x test` does the same. Don't ship green builds that
+  never ran the suite.
+- **Gradle daemon / cache staleness.** A stale daemon or build cache can serve old outputs. When results
+  look impossible, try `--no-daemon`, `--rerun-tasks`, or stop daemons (`./gradlew --stop`).
+- **Plugin vs dependency confusion.** A *plugin* extends the build (adds tasks/goals); a *dependency*
+  is code your app compiles/runs against. They are declared in different places — don't put a plugin in
+  `<dependencies>`/`dependencies {}` or a library in `<build><plugins>`/`plugins {}`.
+
+## Live docs protocol
+
+For version-sensitive or uncovered details (exact goals, task names, plugin coordinates, DSL):
+
+1. **context7 MCP** (best for goal/task/config names). Resolve and query both libraries; if the tools
+   aren't loaded, load them via ToolSearch
+   (`select:mcp__plugin_context7_context7__resolve-library-id`,
+   `select:mcp__plugin_context7_context7__query-docs`):
+   - **Maven** — `/apache/maven-site` (guides, POM reference) and `/apache/maven` (core).
+   - **Gradle** — `/websites/gradle_current_userguide` (the user guide).
+   Pin to the repo's installed version when context7 offers versioned IDs.
+2. **WebFetch** the canonical docs: Maven guides at `https://maven.apache.org/guides/` and the Gradle
+   user guide at `https://docs.gradle.org/current/userguide/userguide.html`.
+3. Cross-check plugin coordinates against the plugin's own page (e.g. the Spring Boot build plugin
+   reference) before pasting them.
+
+Say when an answer is **verified-from-docs** vs **baked-in knowledge**. Always adapt to the project's
+actual Maven/Gradle and Java versions; if they differ from your defaults, state what changes.

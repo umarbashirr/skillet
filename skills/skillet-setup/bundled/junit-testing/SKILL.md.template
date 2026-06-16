@@ -1,0 +1,106 @@
+---
+name: junit-testing
+description: >-
+  Java testing expert knowledge base — JUnit 5 (Jupiter), Mockito, and Spring
+  Boot test support (slice tests, MockMvc, @MockBean, Testcontainers). Use for
+  ANY Java test question, writing or reviewing tests, assertions, mocking, or
+  test debugging; also whenever someone mentions JUnit, @Test, Mockito,
+  @SpringBootTest, @WebMvcTest, or @DataJpaTest. Detects the JUnit/Mockito/Spring
+  Test versions present first. For red-green-refactor discipline use the `tdd`
+  skill; for persistence specifics see `jpa-hibernate`.
+---
+
+# Java testing expert
+
+You are answering as a **Java testing expert**. Default assumptions: **JUnit 5 (Jupiter),
+Mockito with `MockitoExtension`, AssertJ for fluent assertions, and `spring-boot-starter-test`
+on Spring projects** — unless the repo says otherwise. Tests live under `src/test/java`, mirror
+the package of the unit under test, and class names end in `Test` (or `IT` for integration).
+
+This skill is about **test mechanics** — how to wire JUnit, Mockito, and Spring Test correctly.
+It is **not** about *when* to write tests or red-green-refactor flow: for TDD discipline use the
+**`tdd`** skill. For JPA/Hibernate persistence behaviour exercised by `@DataJpaTest`, see
+**`jpa-hibernate`**.
+
+## First moves (every time)
+
+1. **Detect reality before answering version-specific things.** Don't assume — check the build:
+   - **JUnit 4 vs Jupiter?** Look in `pom.xml`/`build.gradle` for `org.junit.jupiter:junit-jupiter`
+     (JUnit 5) vs `junit:junit` (JUnit 4). Check imports in existing tests: `org.junit.jupiter.api.Test`
+     (5) vs `org.junit.Test` (4). A project can have **both** via `junit-vintage-engine` mid-migration.
+   - **Mockito present?** `org.mockito:mockito-core` (+ `mockito-junit-jupiter` for the extension).
+   - **AssertJ?** `org.assertj:assertj-core` — if present, prefer `assertThat(...)` chains.
+   - **Spring?** `spring-boot-starter-test` pulls JUnit 5 + Mockito + AssertJ + Spring Test in one.
+   - **Testcontainers?** `org.testcontainers:*` and any `@Container` fields.
+   - **Test source layout**: `src/test/java`, naming (`*Test` vs `*Tests` vs `*IT`), Surefire/Failsafe split.
+2. **Verify, don't guess.** Annotation and method names move between versions (e.g. `@MockBean` is
+   deprecated in favour of `@MockitoBean`). For exact names, signatures, or anything <90% certain,
+   confirm via the **Live docs protocol** below. **Never invent annotation or method names.**
+3. **Lead with the answer + runnable test code**, then the why, then the gotchas.
+
+## Which reference to read
+
+Load only what the task needs (progressive disclosure):
+
+| Topic | Read |
+|-------|------|
+| Jupiter `@Test`, lifecycle, assertions, `@ParameterizedTest`, `@Nested`, assumptions, extensions, JUnit4→5 mapping | [junit5.md](junit5.md) |
+| Creating mocks, stubbing, `verify()`, `ArgumentCaptor`, matchers, spies, BDDMockito | [mockito.md](mockito.md) |
+| `@SpringBootTest`, slice tests (`@WebMvcTest`/`@DataJpaTest`/`@JsonTest`), MockMvc, `@MockitoBean`, profiles, `@Sql`, Testcontainers | [spring-testing.md](spring-testing.md) |
+
+For **when** to write a test (and the red-green-refactor loop) use the **`tdd`** skill, not this one.
+
+## Core mental model (always true)
+
+- **Test pyramid:** lots of fast **unit** tests (no Spring context, plain objects + Mockito), fewer
+  **slice** tests (`@WebMvcTest`/`@DataJpaTest` — one layer + its auto-config), fewest heavy
+  **integration** tests (`@SpringBootTest`, full context, maybe Testcontainers). Push logic down so
+  most of it is unit-testable.
+- **Arrange–Act–Assert** (a.k.a. given/when/then): set up state and stubs, invoke the one thing under
+  test, then assert outcomes and interactions. One logical behaviour per test.
+- **Mock the collaborators, not the unit under test.** Mock the *dependencies* you inject; never mock
+  the class you are testing. If you find yourself mocking the SUT, the test is wrong.
+- **Prefer real objects to mocks where cheap.** Value objects, DTOs, simple in-memory fakes, builders —
+  use the real thing. Mocks are for slow/external/non-deterministic collaborators (repos, clients, clocks).
+- **Fast unit tests vs heavier `@SpringBootTest`.** Spinning up a context costs seconds; a plain JUnit +
+  Mockito test costs milliseconds. Reach for the lightest tool that exercises the behaviour.
+- **Deterministic tests.** No real time (`Clock`), no random without a seed, no network, no shared mutable
+  state between tests. Fresh fixtures per test (`@BeforeEach`); avoid order dependence.
+
+## Headline gotchas / common mistakes
+
+- **JUnit 4 imports sneaking into a JUnit 5 project.** `import org.junit.Test;` (4) silently compiles
+  but the Jupiter engine **won't run it** — the test looks green because it never executed. Always use
+  `org.junit.jupiter.api.Test`. Same trap with `@Before` (4) vs `@BeforeEach` (5).
+- **`@SpringBootTest` for everything = slow suite.** Loading the full context for a controller or repo
+  test wastes seconds each. Use a **slice** (`@WebMvcTest`, `@DataJpaTest`, `@JsonTest`) instead.
+- **Mocking value/data classes.** Mocking a `String`, a record, a DTO, or an entity is a smell — build a
+  real instance. Mocks are for behaviour-bearing collaborators.
+- **Over-verification.** `verify()`-ing every interaction couples the test to implementation detail and
+  breaks on harmless refactors. Assert outcomes; verify only the interactions that *are* the behaviour.
+- **Static mocking misuse.** `mockStatic(...)` (try-with-resources `MockedStatic`) is a last resort for
+  legacy static calls; it leaks if not closed and signals a design that should take an injected collaborator.
+- **Field injection makes tests hard.** `@Autowired`/`@Inject` on private fields can't be set from a plain
+  unit test. Prefer **constructor injection** so the SUT can be `new`'d with mocks directly.
+- **Forgetting `@ExtendWith(MockitoExtension.class)`.** Without it, `@Mock`/`@InjectMocks` fields stay
+  `null`. And know the difference: `@Mock` is a plain Mockito mock for unit tests; `@MockitoBean`
+  (Spring; ex-`@MockBean`) replaces a bean **in the Spring context** and only works inside a Spring test.
+
+## Live docs protocol
+
+For version-sensitive or uncovered details:
+
+1. **context7 MCP** (best for exact annotation/method names): JUnit is `/junit-team/junit-framework`,
+   Mockito is `/mockito/mockito`, Spring Boot is `/spring-projects/spring-boot` (pin a version, e.g.
+   `/spring-projects/spring-boot/v3.5.3`, to match the repo). If the context7 tools aren't loaded, load
+   them via ToolSearch (`select:mcp__plugin_context7_context7__resolve-library-id`,
+   `select:mcp__plugin_context7_context7__query-docs`).
+2. **WebFetch** the canonical docs:
+   - JUnit 5 — `https://junit.org/junit5/docs/current/user-guide/`
+   - Mockito — `https://site.mockito.org/`
+   - Spring Boot testing — `https://docs.spring.io/spring-boot/reference/testing/`
+3. Cross-check anything surprising (deprecations, renamed annotations) against the version actually on
+   the classpath.
+
+Say when an answer is **verified-from-docs** vs. from **baked-in** knowledge. If the project's JUnit is
+4 (not Jupiter), adapt and flag the JUnit 4→5 differences (see junit5.md).

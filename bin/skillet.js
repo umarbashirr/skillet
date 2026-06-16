@@ -31,6 +31,10 @@ const SKILLS = [
   { value: 'vercel-react-best-practices', label: 'vercel-react-best-practices', hint: 'React/Next.js performance rules — Vercel' },
   { value: 'web-design-guidelines', label: 'web-design-guidelines', hint: 'audit UI against Web Interface Guidelines — Vercel' },
   { value: 'agent-browser', label: 'agent-browser', hint: 'browser automation CLI for agents — Vercel Labs' },
+  { value: 'spring-boot', label: 'spring-boot', hint: 'Spring Boot expert — auto-config, REST, DI, Actuator' },
+  { value: 'jpa-hibernate', label: 'jpa-hibernate', hint: 'JPA/Hibernate + Spring Data — mapping, queries, N+1, tx' },
+  { value: 'java-build', label: 'java-build', hint: 'Java build — Maven & Gradle, deps, plugins, CI' },
+  { value: 'junit-testing', label: 'junit-testing', hint: 'Java testing — JUnit 5, Mockito, Spring Boot Test' },
 ];
 const DEPS = [
   { value: 'jira-mcp', label: 'Atlassian (Jira) MCP server', hint: 'registered in every selected agent' },
