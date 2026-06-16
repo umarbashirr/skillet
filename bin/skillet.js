@@ -27,6 +27,10 @@ const SKILLS = [
   { value: 'nextjs-16', label: 'nextjs-16', hint: 'Next.js 16 App Router expert knowledge base' },
   { value: 'nextjs-playbooks', label: 'nextjs-playbooks', hint: 'Next.js 16 step-by-step build/migrate procedures' },
   { value: 'husky-setup', label: 'husky-setup', hint: 'scaffold husky git hooks: lint/format/secret/typecheck/size gates + commit standards' },
+  { value: 'frontend-design', label: 'frontend-design', hint: 'distinctive, intentional UI/visual design — Anthropic' },
+  { value: 'vercel-react-best-practices', label: 'vercel-react-best-practices', hint: 'React/Next.js performance rules — Vercel' },
+  { value: 'web-design-guidelines', label: 'web-design-guidelines', hint: 'audit UI against Web Interface Guidelines — Vercel' },
+  { value: 'agent-browser', label: 'agent-browser', hint: 'browser automation CLI for agents — Vercel Labs' },
 ];
 const DEPS = [
   { value: 'jira-mcp', label: 'Atlassian (Jira) MCP server', hint: 'registered in every selected agent' },
@@ -35,7 +39,6 @@ const DEPS = [
   { value: 'husky', label: 'husky git hooks', hint: 'scaffold hooks into THIS project (JS only) — NOT selected by default' },
   { value: 'afk-ralph', label: 'afk-ralph.sh', hint: 'autonomous Docker loop — NOT selected by default' },
 ];
-const JIRA_SKILLS = new Set(['grill-me', 'grill-with-docs', 'to-prd', 'to-issues', 'handoff', 'ralph-once', 'jira-ralph']);
 // husky-setup has supporting subdirs (hooks/, configs/) copied verbatim, unlike
 // the flat skills whose only extra files are top-level reference docs.
 const SUBDIR_SKILLS = new Set(['husky-setup']);
@@ -58,13 +61,14 @@ const AGENTS = [
 ];
 
 function parseArgs(argv) {
-  const args = { yes: false, only: null, skip: new Set(), agents: null, domain: null, project: null, dest: null };
+  const args = { yes: false, only: null, skip: new Set(), agents: null, tracker: null, domain: null, project: null, dest: null };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '-y' || a === '--yes') args.yes = true;
     else if (a === '--only') args.only = argv[++i].split(',');
     else if (a === '--skip') argv[++i].split(',').forEach((s) => args.skip.add(s));
     else if (a === '--agents') args.agents = argv[++i].split(',');
+    else if (a === '--tracker') args.tracker = argv[++i]; // 'jira' | 'local'
     else if (a === '--jira-domain') args.domain = argv[++i];
     else if (a === '--jira-project') args.project = argv[++i];
     else if (a === '--dest') args.dest = argv[++i]; // 'global' | 'project'
@@ -78,6 +82,7 @@ Options:
       --only a,b         install only these items
       --skip a,b         deselect items (works with --yes)
       --agents a,b       target agents (default: all detected)
+      --tracker jira|local   issue tracker (default: jira)
       --jira-domain X    Jira domain (default: xcelore.atlassian.net)
       --jira-project X   Jira project key (default: XW)
       --dest global|project   skills dir (default: global)
@@ -479,26 +484,43 @@ async function main() {
   }
   const agentDefs = AGENTS.filter((a) => agents.includes(a.value));
 
-  const wantsJira = selected.some((s) => JIRA_SKILLS.has(s));
+  // --- tracker (asked every interactive run) ---
+  let tracker = args.tracker ?? (args.yes ? 'jira' : null);
+  if (tracker === null) {
+    const t = await p.select({
+      message: 'Select tracker',
+      options: [
+        { value: 'jira', label: 'JIRA', hint: 'domain + project key' },
+        { value: 'local', label: 'Locally', hint: 'no Jira — local / PRD.md mode' },
+      ],
+      initialValue: 'jira',
+    });
+    if (p.isCancel(t)) bail();
+    tracker = t;
+  }
 
-  // --- config ---
-  let domain = args.domain ?? 'xcelore.atlassian.net';
-  let project = args.project ?? 'XW';
-  if (wantsJira && !args.yes && (!args.domain || !args.project)) {
-    const d = await p.text({
-      message: 'Jira domain',
-      defaultValue: domain,
-      placeholder: domain,
-    });
-    if (p.isCancel(d)) bail();
-    domain = d || domain;
-    const k = await p.text({
-      message: 'Jira project key',
-      defaultValue: project,
-      placeholder: project,
-    });
-    if (p.isCancel(k)) bail();
-    project = (k || project).toUpperCase();
+  // --- config (Jira domain + key only when tracker = jira) ---
+  let domain = '';
+  let project = '';
+  if (tracker === 'jira') {
+    domain = args.domain ?? 'xcelore.atlassian.net';
+    project = args.project ?? 'XW';
+    if (!args.yes && (!args.domain || !args.project)) {
+      const d = await p.text({
+        message: 'Jira domain',
+        defaultValue: domain,
+        placeholder: domain,
+      });
+      if (p.isCancel(d)) bail();
+      domain = d || domain;
+      const k = await p.text({
+        message: 'Jira project key',
+        defaultValue: project,
+        placeholder: project,
+      });
+      if (p.isCancel(k)) bail();
+      project = (k || project).toUpperCase();
+    }
   }
 
   let destChoice = args.dest ?? 'global';
@@ -743,7 +765,7 @@ async function main() {
   if (installed.length) info.push(row('Skills', installed.join(', ')));
   if (installed.length) info.push(row('Agents', agents.join(', ')));
   info.push(row('Location', c.dim(destDir)));
-  if (wantsJira) info.push(row('Jira', `${domain} ${c.dim('/')} ${project}`));
+  info.push(row('Tracker', tracker === 'jira' ? `Jira ${c.dim('·')} ${domain} ${c.dim('/')} ${project}` : 'Local'));
   if (skipped.length) info.push(row('Skipped', c.dim(skipped.join(', '))));
   if (linkSkipped.length) info.push(`${ICON.warn} not symlinked (real dir in the way): ${linkSkipped.join(', ')}`);
 
