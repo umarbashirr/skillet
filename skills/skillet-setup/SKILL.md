@@ -25,6 +25,10 @@ What gets installed:
 | `nextjs-16` | Next.js 16 App Router expert knowledge base (SKILL + reference docs) |
 | `nextjs-playbooks` | Next.js 16 step-by-step procedures: scaffold-route, cache-components-setup, server-actions-forms, pages-to-app, v16-upgrade |
 | `husky-setup` | `/husky-setup` skill — scaffolds husky git hooks (lint/format/secret-scan + commit standards + typecheck + size gates) into a JS project |
+| `spring-boot` | Spring Boot expert knowledge base (auto-config, REST/web, DI, config & Actuator) + reference docs |
+| `jpa-hibernate` | JPA/Hibernate & Spring Data JPA expert (entity mapping, queries, N+1, transactions) + reference docs |
+| `java-build` | Maven & Gradle build expert (lifecycle/tasks, dependencies, plugins, BOMs, CI) + reference docs |
+| `junit-testing` | Java testing expert (JUnit 5, Mockito, Spring Boot test slices/Testcontainers) + reference docs |
 | Atlassian MCP | Jira access for the skills above, registered per agent |
 | `gh` CLI | GitHub CLI for repos hosted on GitHub |
 | `glab` CLI | GitLab CLI for repos hosted on GitLab |
@@ -43,7 +47,7 @@ Ask the user:
 
 Let `DEST` be the chosen skills directory and `BUNDLED` be the `bundled/` directory next to this SKILL.md.
 
-For each of `grill-me`, `grill-with-docs`, `to-prd`, `to-issues`, `handoff`, `ralph-once`, `jira-ralph`, `tdd`, `prototype`, `caveman`, `nextjs-16`, `nextjs-playbooks`, `husky-setup`:
+For each of `grill-me`, `grill-with-docs`, `to-prd`, `to-issues`, `handoff`, `ralph-once`, `jira-ralph`, `tdd`, `prototype`, `caveman`, `nextjs-16`, `nextjs-playbooks`, `husky-setup`, `spring-boot`, `jpa-hibernate`, `java-build`, `junit-testing`:
 
 ```bash
 mkdir -p "$DEST/<name>"
@@ -59,6 +63,10 @@ cp "$BUNDLED"/tdd/{deep-modules,interface-design,mocking,refactoring,tests}.md "
 cp "$BUNDLED"/prototype/{LOGIC,UI}.md "$DEST/prototype/"
 cp "$BUNDLED"/nextjs-16/{v16-changes,cache-and-rendering,routing-and-data,apis-metadata-assets,config-cli-deploy,doc-map}.md "$DEST/nextjs-16/"
 cp "$BUNDLED"/nextjs-playbooks/{scaffold-route,cache-components-setup,server-actions-forms,pages-to-app,v16-upgrade}.md "$DEST/nextjs-playbooks/"
+cp "$BUNDLED"/spring-boot/{web-rest,config-actuator,di-autoconfig}.md "$DEST/spring-boot/"
+cp "$BUNDLED"/jpa-hibernate/{entities-mapping,repositories-queries,transactions}.md "$DEST/jpa-hibernate/"
+cp "$BUNDLED"/java-build/{maven,gradle,deps-ci}.md "$DEST/java-build/"
+cp "$BUNDLED"/junit-testing/{junit5,mockito,spring-testing}.md "$DEST/junit-testing/"
 cp -R "$BUNDLED"/husky-setup/{scaffold.mjs,hooks,configs} "$DEST/husky-setup/"
 ```
 
@@ -142,8 +150,8 @@ Do not declare success with pending auth. For each, verify → guide → re-veri
 ## Verify
 
 ```bash
-ls "$DEST" | grep -cE 'grill-me|grill-with-docs|to-prd|to-issues|handoff|ralph-once|jira-ralph|tdd|prototype|caveman|nextjs-16|nextjs-playbooks|husky-setup'   # expect 13
-grep -L '{{JIRA' "$DEST"/{grill-me,grill-with-docs,to-prd,to-issues,handoff,ralph-once,jira-ralph,tdd,prototype,caveman,nextjs-16,nextjs-playbooks,husky-setup}/SKILL.md # all listed = no leftover placeholders
+ls "$DEST" | grep -cE 'grill-me|grill-with-docs|to-prd|to-issues|handoff|ralph-once|jira-ralph|tdd|prototype|caveman|nextjs-16|nextjs-playbooks|husky-setup|spring-boot|jpa-hibernate|java-build|junit-testing'   # expect 17
+grep -L '{{JIRA' "$DEST"/{grill-me,grill-with-docs,to-prd,to-issues,handoff,ralph-once,jira-ralph,tdd,prototype,caveman,nextjs-16,nextjs-playbooks,husky-setup,spring-boot,jpa-hibernate,java-build,junit-testing}/SKILL.md # all listed = no leftover placeholders
 claude mcp list | grep -i atlassian
 command -v glab
 ```

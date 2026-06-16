@@ -1,0 +1,110 @@
+---
+name: spring-boot
+description: >-
+  Spring Boot expert knowledge base — auto-configuration, starters, dependency injection, REST/web, configuration & profiles, and Actuator. Use for ANY Spring Boot question, design decision, code review, or debugging; also whenever someone mentions Spring Boot, Spring, @SpringBootApplication, starters, or application.yml. Detects the project's Spring Boot/Java version and build tool first. For persistence see the `jpa-hibernate` skill, for builds `java-build`, for tests `junit-testing`.
+---
+
+# Spring Boot expert
+
+You are answering as a **Spring Boot expert**. Default assumptions, **unless the repo says otherwise**:
+a current Spring Boot release on the **servlet (Spring MVC) web stack**, **Maven** build, a single
+`@SpringBootApplication` class, **constructor injection**, **Jackson** for JSON, and externalized
+config in `application.properties`/`application.yml`. Confirm each of these before relying on it —
+none is guaranteed.
+
+## First moves (every time)
+
+1. **Detect reality before answering version-specific things.** Read the build file and markers:
+   - **Build tool & version:** `pom.xml` (Maven) vs `build.gradle`/`build.gradle.kts` (Gradle). The
+     Spring Boot version is the `spring-boot-starter-parent` `<version>` (or the
+     `org.springframework.boot` plugin / `spring-boot-dependencies` BOM import) in Maven, or the
+     `org.springframework.boot` plugin version in Gradle.
+   - **Java version:** `<java.version>`/`<maven.compiler.release>` in `pom.xml`, or
+     `sourceCompatibility`/`java { toolchain { languageVersion } }` in Gradle.
+   - **Web stack:** `spring-boot-starter-web` ⇒ **servlet/Spring MVC + embedded Tomcat**;
+     `spring-boot-starter-webflux` ⇒ **reactive/WebFlux + Netty**. Both on the classpath is a smell
+     (Boot picks MVC unless `WebApplicationType` is forced) — flag it.
+   - **Packaging & layout:** jar vs war; where the `@SpringBootApplication` class sits (it dictates
+     the component-scan base package); presence of `application.yml`/`.properties`,
+     `application-<profile>.*`, and an active-profile setting.
+2. **Verify, don't guess.** Spring's annotation, property, and starter names are precise and change
+   across versions. For anything <90% certain — exact property keys, conditional annotations, starter
+   coordinates, signatures — confirm via the **Live docs protocol** below. **Never invent property or
+   annotation names.**
+3. **Lead with the answer + runnable code** (real Java/YAML, correct imports/coordinates), then the
+   *why* (the mental model), then the gotchas, then the doc path.
+
+## Which reference to read
+
+Load only what the task needs (progressive disclosure):
+
+| Topic | Read |
+|-------|------|
+| `@RestController`, request/response binding, `@Valid` & Bean Validation, exception handling, `ProblemDetail`, content negotiation, status codes | [web-rest.md](web-rest.md) |
+| `application.properties`/`.yml`, profiles, `@ConfigurationProperties` vs `@Value`, config precedence, externalized config, **Actuator** endpoints/health/metrics, Micrometer | [config-actuator.md](config-actuator.md) |
+| Bean stereotypes, `@Bean`/`@Configuration`, constructor vs field injection, `@Qualifier`/`@Primary`, conditional beans, **how auto-configuration works**, starters, scopes & lifecycle | [di-autoconfig.md](di-autoconfig.md) |
+
+## Core mental model (always true)
+
+- **Starters + auto-configuration.** A starter (`spring-boot-starter-*`) is a dependency aggregator
+  that pulls a coherent set of libraries onto the classpath. `@EnableAutoConfiguration` (folded into
+  `@SpringBootApplication`) then **reacts to what's on the classpath and what beans you've already
+  defined** to configure sensible defaults.
+- **Opinionated defaults you can override.** Auto-config beans are almost always guarded by
+  `@ConditionalOnMissingBean` (and friends): the moment you declare your own bean of that type, the
+  framework **backs off**. You override by *supplying a bean* or *setting a property*, not by editing
+  framework code.
+- **The application context & component scanning.** `@SpringBootApplication` = `@Configuration` +
+  `@EnableAutoConfiguration` + `@ComponentScan`. Scanning starts at the **package of that class** and
+  recurses *downward only* — beans in sibling/parent packages are invisible.
+- **Externalized config precedence.** The same artifact runs everywhere; config is layered. Later
+  sources win: command-line args > `SPRING_APPLICATION_JSON` > OS env vars / system properties >
+  `application.properties`/`.yml` (profile-specific files override the plain ones). Details in
+  config-actuator.md.
+- **Convention over configuration.** Defaults (port 8080, `application.yml` on the classpath, Jackson
+  JSON, `/actuator` base path, embedded server) work with zero config; you only declare the
+  *deltas*.
+
+## Headline gotchas / common mistakes
+
+- **Component-scan package placement.** Put `@SpringBootApplication` in a **root package above** all
+  your code. If a `@Service`/`@Repository` lives outside that subtree it is never registered →
+  `NoSuchBeanDefinitionException` or silent nulls. Fix by moving it, or add explicit
+  `@ComponentScan(basePackages = …)` / `@Import`.
+- **Field injection vs constructor injection.** Prefer **constructor injection** (immutable, testable,
+  fails fast on missing deps, no reflection needed in tests). `@Autowired` field injection hides
+  dependencies and breaks final fields. A single constructor needs no `@Autowired`.
+- **`@Transactional` (and `@Async`/`@Cacheable`) self-invocation.** These work via a proxy. Calling an
+  annotated method **from another method in the same bean** (`this.method()`) bypasses the proxy, so
+  the advice **does not run**. Call through an injected reference or split the bean. (Persistence
+  detail lives in `jpa-hibernate`, but the proxy trap is general.)
+- **Mixing servlet + reactive.** `spring-boot-starter-web` and `-webflux` on the same classpath is
+  contradictory; Boot defaults to servlet/MVC and your reactive `RouterFunction`s may not behave as
+  expected. Pick one stack per app (or force `WebApplicationType` deliberately).
+- **Relaxed binding ≠ exact match.** Property keys bind *relaxed*: `my.main-project-name`,
+  `my.mainProjectName`, `MY_MAINPROJECTNAME` (env) all bind the same target. Don't assume the env-var
+  form must match the dotted form character-for-character — but **do** use the documented uppercase /
+  underscore rules for env vars.
+- **Auto-config that "won't turn off."** You can't override what you can't see. If a default bean
+  persists, it's because your replacement bean has the wrong **type** (the `@ConditionalOnMissingBean`
+  matches by type) or your `@Configuration` isn't scanned. Use the `conditions` actuator endpoint /
+  `--debug` auto-config report to see why a configuration matched or backed off.
+
+## Live docs protocol
+
+For version-sensitive or uncovered details:
+
+1. **context7 MCP** (best for annotations/properties/starters): library is
+   `/spring-projects/spring-boot`. If the context7 tools aren't loaded, load them via ToolSearch
+   (`select:mcp__plugin_context7_context7__query-docs`,
+   `select:mcp__plugin_context7_context7__resolve-library-id`); if the library id ever fails to
+   resolve, call `resolve-library-id` for "Spring Boot" first.
+2. **WebFetch `https://docs.spring.io/spring-boot/`** — reference docs, properties appendix, and the
+   "how-to" guides. For the full property list use the configuration-metadata / application-properties
+   appendix.
+3. Cross-check surprises against the version-specific reference (the docs are versioned; read the page
+   matching the project's detected Boot version).
+
+Say when an answer is **verified-from-docs** vs **from baked-in knowledge**. If the project's Spring
+Boot or Java version differs from what you assumed, **adapt and state what differs** (e.g. a property
+key was renamed, a starter was split, or a default changed between minor versions).

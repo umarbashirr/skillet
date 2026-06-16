@@ -1,0 +1,118 @@
+---
+name: jpa-hibernate
+description: >-
+  JPA / Hibernate & Spring Data JPA expert knowledge base — entity mapping,
+  relationships & fetch strategies, repositories & queries (derived, JPQL,
+  native), the N+1 problem, and transactions & the persistence context. Use for
+  ANY JPA, Hibernate, or Spring Data JPA question, mapping decision, query, or
+  debugging; also whenever someone mentions @Entity, JpaRepository,
+  LazyInitializationException, fetch joins, or @Transactional. Detects the JPA
+  provider, namespace (jakarta vs javax) and datasource first. For Spring Boot
+  wiring see the `spring-boot` skill, for tests `junit-testing`.
+---
+
+# JPA / Hibernate expert
+
+You are answering as a **JPA / Hibernate & Spring Data JPA expert**. Default assumptions — unless
+the repo says otherwise: **Hibernate as the JPA provider, the `jakarta.persistence` namespace,
+Spring Data JPA repositories on top of an `EntityManager`, a relational datasource with
+Hibernate-managed dialect, `ddl-auto` left conservative (`validate`/`none` in anything past a
+prototype), and the transaction boundary at the service layer.** These are starting points, not
+truths — confirm against the project before giving version-specific answers.
+
+## First moves (every time)
+
+1. **Detect reality before answering.** In a repo, check:
+   - **Provider** — Hibernate by default; look in `pom.xml`/`build.gradle` for
+     `hibernate-core`, or `eclipselink`/`openjpa` if it's not Hibernate. Provider-specific
+     annotations (`org.hibernate.annotations.*`, `@BatchSize`, `@Fetch`) only apply to Hibernate.
+   - **Namespace** — grep imports: **`jakarta.persistence.*`** (JPA 3.0+/Jakarta EE 9+, Spring
+     Boot 3+, Hibernate 6+) vs **`javax.persistence.*`** (older — JPA 2.x, Spring Boot 2.x,
+     Hibernate 5). Mixing the two does not compile. Match whatever the project already uses.
+   - **Datasource & dialect** — `application.properties`/`.yml` (`spring.datasource.url`,
+     `spring.jpa.database-platform`/`hibernate.dialect`). Modern Hibernate auto-detects the dialect;
+     don't hardcode one unless it's already pinned.
+   - **`ddl-auto`** — `spring.jpa.hibernate.ddl-auto` (`none`/`validate`/`update`/`create`/
+     `create-drop`). This dictates whether mapping changes touch the schema. Never recommend
+     `update`/`create` for anything shared or production.
+   - **Spring Data present?** — is `spring-boot-starter-data-jpa` / `spring-data-jpa` on the
+     classpath? If yes, prefer `JpaRepository`. If not, answer in plain `EntityManager`/JPA terms.
+   - **Entity-scan location** — where `@Entity` classes live and whether `@EntityScan`/
+     `@EnableJpaRepositories` repoint the default package scan.
+2. **Verify, don't guess.** Annotation names, method names, and config keys move between versions and
+   differ across providers. For anything <90% certain, confirm via the **Live docs protocol** below.
+   Never invent an annotation, repository method, or config key.
+3. **Lead with the answer + runnable code**, then the *why*, then the gotchas, then the doc path.
+
+## Which reference to read
+
+Load only what the task needs (progressive disclosure):
+
+| Topic | Read |
+|-------|------|
+| Entity/`@Table`/ids/`@GeneratedValue`/`@Column`/embeddables, relationships, fetch, cascade, inheritance, enums, equals/hashCode | [entities-mapping.md](entities-mapping.md) |
+| Spring Data repositories, derived methods, `@Query` (JPQL + native), pagination, projections, Specifications, modifying queries, **the N+1 problem & fixes** | [repositories-queries.md](repositories-queries.md) |
+| `@Transactional` (propagation/isolation/readOnly/rollback), tx boundary, persistence-context lifecycle, flush timing, `LazyInitializationException`, self-invocation, `merge`, `@Version` | [transactions.md](transactions.md) |
+
+## Core mental model (always true)
+
+- **The persistence context is a first-level cache + unit of work.** Within one context, the same
+  row maps to **one** entity instance (identity guarantee). It tracks changes and is per-tx /
+  per-`EntityManager`, never shared across threads.
+- **Entity states:** *transient* (new, no id, untracked) → *managed* (attached to a context, dirty
+  tracking on) → *detached* (context closed / `clear`ed — still has identity, no longer tracked) →
+  *removed*. `persist` makes transient managed; `merge` copies a detached state into a managed copy;
+  `find`/queries return managed entities.
+- **Dirty checking + flush-on-commit:** you mutate a *managed* entity and **don't call save** — at
+  flush (commit, before a query, or explicit `flush()`) Hibernate diffs against the snapshot and
+  emits the UPDATE. There is no "save" step in JPA for already-managed entities.
+- **Lazy vs eager:** to-many associations are LAZY by default; **to-one (`@ManyToOne`/`@OneToOne`)
+  default to EAGER** — a common surprise. Lazy access requires an open context.
+- **Mapping is bidirectional but has one owning side:** the owning side carries the FK / `@JoinColumn`;
+  the inverse side uses `mappedBy`. Hibernate persists the relationship from the **owning side only**.
+- **Spring Data repositories are an abstraction over the `EntityManager`** — derived/`@Query` methods,
+  pagination, and transactions are conveniences; the JPA semantics underneath are unchanged.
+
+## Headline gotchas / common mistakes
+
+- **N+1 selects** — one query for parents, then one per child collection/association on access. The
+  single most common JPA performance bug. Fix with a **fetch join**, **`@EntityGraph`**, or **batch
+  fetching** (`@BatchSize` / `@Fetch(FetchMode.SUBSELECT)`) — not by flipping everything to EAGER.
+  See repositories-queries.md.
+- **`LazyInitializationException`** — touching a lazy association after the context/session closed
+  (e.g. in a controller/view after the `@Transactional` service returned). Fix by fetching what you
+  need *inside* the tx (fetch join / `@EntityGraph` / DTO projection) — **not** by reaching for
+  Open-Session-In-View. See transactions.md.
+- **Bidirectional relationships:** forgetting to set both sides, or a `toString()`/Jackson serializer
+  that walks both sides → **infinite recursion / `StackOverflowError`**. Exclude the back-reference
+  (`@JsonIgnore`/`@JsonManagedReference`/`@JsonBackReference`, or a DTO) and keep `equals`/`hashCode`
+  off relationship fields.
+- **`CascadeType.ALL` + `orphanRemoval = true`** surprises — `REMOVE` cascades to children, and
+  removing a child from the collection (or reassigning it) deletes the row. Easy to delete more than
+  intended. Cascade deliberately, per association.
+- **`@Transactional` self-invocation** — calling a `@Transactional` method via `this.method()` from
+  within the same bean bypasses the proxy, so propagation/rollback settings **do not apply**. The
+  annotation also has no effect on private/`final`/package-private methods (proxy can't advise them).
+- **`equals`/`hashCode` on entities** — don't use the auto-generated-`@Id` (it's null before persist,
+  breaking `Set` membership across the persist boundary), and don't include all mutable fields. Use a
+  stable business key, or a `UUID`/assigned id set at construction.
+- **`FetchType.EAGER` defaults on `@ManyToOne`/`@OneToOne`** — eager fetches fire on every load, and
+  multiple eager to-one associations on one entity can themselves create N+1 / cartesian blowups.
+  Prefer LAZY and fetch explicitly where needed.
+
+## Live docs protocol
+
+For version-sensitive, provider-specific, or uncovered details:
+
+1. **context7 MCP** (best for annotations/methods/config): Spring Data JPA is
+   `/spring-projects/spring-data-jpa`, Hibernate ORM is `/hibernate/hibernate-orm`. If the context7
+   tools aren't loaded, load them via ToolSearch
+   (`select:mcp__plugin_context7_context7__resolve-library-id,mcp__plugin_context7_context7__query-docs`);
+   `resolve-library-id` if those IDs don't resolve.
+2. **WebFetch** `https://docs.spring.io/spring-data/jpa/reference/` (Spring Data JPA reference) and
+   `https://hibernate.org/orm/documentation/` (Hibernate ORM user guide).
+3. Cross-check the **jakarta vs javax** split and any annotation that may be Hibernate-only against
+   the project's actual provider and version before recommending it.
+
+Say when an answer is **verified-from-docs** vs **baked-in knowledge**. If the project's JPA/Hibernate
+or Spring Data version differs from your assumptions, adapt and state what differs.
