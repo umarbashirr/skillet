@@ -356,7 +356,7 @@ async function ensureAuth({ label, verify, login, steps, yes }) {
       const s = p.spinner();
       s.start(`${quip()}… checking ${label} auth`);
       const ok = verify();
-      s.stop(ok ? `${label} auth ✔` : `${label} auth not done yet`);
+      s.stop(ok ? `${label} auth ${ICON.ok}` : `${label} auth ${c.yellow('not done yet')}`);
       if (ok) return `${label}: authenticated ✔`;
     }
     if (yes) return `${label}: PENDING — ${steps}`;
@@ -379,20 +379,55 @@ async function ensureAuth({ label, verify, login, steps, yes }) {
   return `${label}: still not verified — ${steps}`;
 }
 
-const BANNER = `
-\x1b[33m  ███████ ██   ██ ██ ██      ██      ███████ ████████
-  ██      ██  ██  ██ ██      ██      ██         ██
-  ███████ █████   ██ ██      ██      █████      ██
-       ██ ██  ██  ██ ██      ██      ██         ██
-  ███████ ██   ██ ██ ███████ ███████ ███████    ██\x1b[0m
+// --- color: honor NO_COLOR + non-TTY (FORCE_COLOR overrides) ---
+const NO_COLOR = !!process.env.NO_COLOR || (!process.stdout.isTTY && !process.env.FORCE_COLOR);
+const sgr = (open, close) => (s) => (NO_COLOR ? `${s}` : `\x1b[${open}m${s}\x1b[${close}m`);
+const x256 = (code) => (s) => (NO_COLOR ? `${s}` : `\x1b[38;5;${code}m${s}\x1b[39m`);
+const c = {
+  bold: sgr(1, 22),
+  dim: sgr(2, 22),
+  red: sgr(31, 39),
+  green: sgr(32, 39),
+  yellow: sgr(33, 39),
+  cyan: sgr(36, 39),
+  orange: x256(208),
+};
+const ICON = { ok: c.green('✔'), fail: c.red('✘'), warn: c.yellow('⚠'), info: c.cyan('•') };
 
-  🍳 \x1b[1mSkillet\x1b[0m — agent workflow installer \x1b[2mby Umar Bashir\x1b[0m
-`;
+let VERSION = '';
+try {
+  VERSION = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf8')).version;
+} catch {}
+
+// Warm "skillet on the heat" gradient: red → orange → amber → gold → yellow.
+const FIRE = [196, 202, 208, 214, 220];
+const ART = [
+  '  ███████ ██   ██ ██ ██      ██      ███████ ████████',
+  '  ██      ██  ██  ██ ██      ██      ██         ██',
+  '  ███████ █████   ██ ██      ██      █████      ██',
+  '       ██ ██  ██  ██ ██      ██      ██         ██',
+  '  ███████ ██   ██ ██ ███████ ███████ ███████    ██',
+];
+const banner = () => {
+  const art = ART.map((row, i) => x256(FIRE[i])(row)).join('\n');
+  const ver = VERSION ? c.dim(`v${VERSION}`) : '';
+  const title = `  🍳 ${c.bold(c.orange('Skillet'))} ${ver} ${c.dim('— agent workflow installer')}`;
+  return `\n${art}\n\n${title}\n  ${c.dim('by Umar Bashir')}\n`;
+};
+
+// Pick a colored status icon for a summary line from its keywords.
+const statusLine = (s) => {
+  if (/FAILED|✘|not verified/.test(s)) return `${ICON.fail} ${s.replace(/[✘]/g, '').trim()}`;
+  if (/PENDING|SKIPPED|⚠/.test(s)) return `${ICON.warn} ${s.replace(/[⚠]/g, '').trim()}`;
+  if (/✔|registered|installed|authenticated|scaffolded|confirmed/.test(s)) return `${ICON.ok} ${s.replace(/[✔]/g, '').trim()}`;
+  return `${ICON.info} ${s}`;
+};
+const row = (k, v) => `${c.bold(k.padEnd(10))} ${v}`;
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
-  console.log(BANNER);
-  p.intro('🍳 skillet');
+  console.log(banner());
+  p.intro(`${c.orange('🍳')} ${c.bold('skillet setup')}`);
 
   // --- item selection ---
   let selected;
@@ -528,7 +563,7 @@ async function main() {
       }
     }
     installed.push(name);
-    sk.stop(`${name} ✔`);
+    sk.stop(`${name} ${ICON.ok}`);
   }
 
   // ralph scripts → project root (afk-ralph.sh is opt-in)
@@ -580,10 +615,10 @@ async function main() {
       s.start(`${quip()}… registering Atlassian MCP in ${a.label}`);
       try {
         const err = MCP_REGISTER[a.value](os.homedir());
-        s.stop(err ? `${a.label}: MCP ✘` : `${a.label}: MCP ✔`);
+        s.stop(`${a.label}: MCP ${err ? ICON.fail : ICON.ok}`);
         mcpResults.push(err ? `${a.label} MCP: FAILED — ${err}` : `${a.label} MCP: registered`);
       } catch (e) {
-        s.stop(`${a.label}: MCP ✘`);
+        s.stop(`${a.label}: MCP ${ICON.fail}`);
         mcpResults.push(`${a.label} MCP: FAILED — ${String(e.message ?? e).split('\n')[0]}`);
       }
     }
@@ -656,7 +691,7 @@ async function main() {
         if (e.stderr) console.error(String(e.stderr).trim());
       }
     }
-    s.stop(ok ? `${dep} ✔` : `${dep} ✘`);
+    s.stop(`${dep} ${ok ? ICON.ok : ICON.fail}`);
     depResults.push(ok ? `${dep}: installed` : `${dep}: FAILED — install manually: ${manual}`);
     // self-heal PATH so auth can run in this same session
     if (ok && process.platform === 'win32' && !hasCmd(dep)) {
@@ -704,21 +739,25 @@ async function main() {
   }
 
   // --- summary ---
-  const lines = [];
-  if (installed.length) lines.push(`Skills → ${destDir}: ${installed.join(', ')}`);
-  if (installed.length) lines.push(`Symlinked into: ${agents.join(', ')}`);
-  if (skipped.length) lines.push(`Skipped (already present): ${skipped.join(', ')}`);
-  if (linkSkipped.length) lines.push(`⚠ NOT symlinked (real dir in the way, no overwrite): ${linkSkipped.join(', ')}`);
-  if (wantsJira) lines.push(`Jira: ${domain} / ${project}`);
-  lines.push(...mcpResults, ...depResults, ...huskyResults, ...authResults);
-  p.note(lines.join('\n'), 'Installed');
+  const info = [];
+  if (installed.length) info.push(row('Skills', installed.join(', ')));
+  if (installed.length) info.push(row('Agents', agents.join(', ')));
+  info.push(row('Location', c.dim(destDir)));
+  if (wantsJira) info.push(row('Jira', `${domain} ${c.dim('/')} ${project}`));
+  if (skipped.length) info.push(row('Skipped', c.dim(skipped.join(', '))));
+  if (linkSkipped.length) info.push(`${ICON.warn} not symlinked (real dir in the way): ${linkSkipped.join(', ')}`);
 
+  const status = [...mcpResults, ...depResults, ...huskyResults, ...authResults].map(statusLine);
+  const body = [...info, ...(status.length ? ['', ...status] : [])].join('\n');
+  p.note(body, c.bold('Summary'));
+
+  const next = `${c.dim('Restart your agent session, then:')}\n   ` +
+    [c.cyan('/grill-me <jira-url>'), c.cyan('/to-prd'), c.cyan('/to-issues'), c.cyan('/jira-ralph <KEY>')].join(c.dim(' → '));
   const pending = authResults.filter((l) => /PENDING|SKIPPED|not verified/.test(l));
   p.outro(
     (pending.length
-      ? `⚠ Finish auth before using the workflow:\n   ${pending.join('\n   ')}\n`
-      : '✔ All auth verified.\n') +
-      '   Restart your agent session, then: /grill-me <jira-url> → /to-prd → /to-issues → /jira-ralph <KEY>',
+      ? `${c.yellow('⚠ Finish auth before using the workflow:')}\n   ${pending.map((l) => c.dim(l)).join('\n   ')}\n\n`
+      : `${c.green('✔ All auth verified.')}\n\n`) + next,
   );
 }
 
