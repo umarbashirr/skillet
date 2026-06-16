@@ -1,0 +1,66 @@
+---
+name: husky-setup
+description: Set up (or improvise on existing) husky git hooks for a JS/TS project — pre-commit lint+format+secret-scan via lint-staged & secretlint, commit-msg Conventional Commits via commitlint, and pre-push typecheck + size gates (≤1000 added code lines per branch, ≤2000 lines per test file, non-code excluded). Use when the user wants husky, git hooks, commit standards, lint-staged, secret scanning, or PR/test size limits in a Node project. Detects the package manager and existing tooling; never clobbers existing hooks or configs.
+---
+
+# Husky Setup
+
+Scaffolds git hooks for a JS/TS repo, or improvises on top of an existing husky setup. All check logic lives in committed `.skillet/hooks/*.mjs`; each `.husky` hook holds one skillet-managed line, so re-runs and the team's own hook lines coexist.
+
+What it wires:
+
+| Hook | Runs |
+|------|------|
+| `pre-commit` | `lint-staged` → lint + format on staged files (eslint/biome/prettier, per detection) **+ secretlint** (secret scan) on staged files |
+| `commit-msg` | `commitlint` with `@commitlint/config-conventional` (Conventional Commits) |
+| `pre-push` | `typecheck` (project script, else `tsc --noEmit` when TS is set up) **+** size gates: branch diff vs base ≤ **1000** added code lines (tests & non-code excluded), each test file ≤ **2000** lines |
+
+Always installed as devDependencies: `husky`, `lint-staged`, `@commitlint/cli`, `@commitlint/config-conventional`, `secretlint`, `@secretlint/secretlint-rule-preset-recommend`. Lint/format/typecheck tools are **detected, never force-installed**.
+
+## Step 1 — Confirm the target
+
+The hooks attach to the **git root**. Confirm with the user which repo to set up (default: the current project). For a monorepo, hooks install once at the root and run repo-wide.
+
+## Step 2 — Run the scaffold
+
+The scaffold script sits next to this SKILL.md. Run it, passing the project path (or omit to use the current directory):
+
+```bash
+node "<this-skill-dir>/scaffold.mjs" "<project-root>"
+```
+
+Interpret the exit code:
+
+- **0** — done. Show the user the printed summary (package manager, what each hook runs, detected tools, notes).
+- **2** — skipped: not a git repo, or no `package.json` at the git root. Tell the user husky needs a JS git project; offer to `git init` / `npm init` if appropriate, then re-run.
+- **1** — error (usually the dependency install failed). Surface the install error; common causes: offline, or a package-manager mismatch. Re-run after fixing.
+
+The script:
+- detects the package manager from the lockfile (npm/pnpm/yarn/bun),
+- installs only the feature deps that are missing (idempotent),
+- runs `husky` to set up `.husky/_/` and the prepare script,
+- copies `.skillet/hooks/*`, writes the `.husky` hook managed-blocks,
+- generates `.lintstagedrc.json` from detected tools and writes `commitlint.config.cjs` / `.secretlintrc.json` **only if absent**.
+
+## Step 3 — Review & explain
+
+Everything is left **unstaged**. Tell the user to review the diff and commit (the new commit must itself satisfy commitlint — `chore: add husky hooks and commit standards` works).
+
+Explain the honest limit of local secret scanning: **`git commit --no-verify` bypasses every hook**, and hooks only run on machines where `npm install` ran (the `prepare` script installs them). secretlint as a devDependency closes the per-machine gap, but the only non-bypassable guarantee is server-side scanning in CI. If the user needs that guarantee, point them to GitHub push protection / GitLab secret push protection or a CI gitleaks job.
+
+## Step 4 — Verify
+
+```bash
+cat .husky/pre-commit .husky/commit-msg .husky/pre-push   # each has a skillet managed block
+ls .skillet/hooks                                          # _util, pre-commit, commit-msg, pre-push, size-check
+node -e "console.log(require('./package.json').scripts.prepare)"   # includes "husky"
+```
+
+Quick behavior check (optional): stage a file containing a fake secret like `AWS_SECRET_ACCESS_KEY=AKIA...` and confirm pre-commit blocks it; write a 1500-line source file on a branch and confirm pre-push reports the size violation.
+
+## Tuning
+
+- Size limits: env `SKILLET_MAX_PROD`, `SKILLET_MAX_TEST_FILE`; base branch override `SKILLET_BASE_BRANCH`.
+- Commit rules: edit `commitlint.config.cjs`.
+- Staged commands: edit `.lintstagedrc.json`.
+- Secret rules/allowlist: edit `.secretlintrc.json`.

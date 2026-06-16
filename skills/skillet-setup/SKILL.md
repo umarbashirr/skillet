@@ -24,9 +24,11 @@ What gets installed:
 | `caveman` | Ultra-compressed response mode, ~75% fewer tokens, full technical accuracy |
 | `nextjs-16` | Next.js 16 App Router expert knowledge base (SKILL + reference docs) |
 | `nextjs-playbooks` | Next.js 16 step-by-step procedures: scaffold-route, cache-components-setup, server-actions-forms, pages-to-app, v16-upgrade |
+| `husky-setup` | `/husky-setup` skill — scaffolds husky git hooks (lint/format/secret-scan + commit standards + typecheck + size gates) into a JS project |
 | Atlassian MCP | Jira access for the skills above, registered per agent |
 | `gh` CLI | GitHub CLI for repos hosted on GitHub |
 | `glab` CLI | GitLab CLI for repos hosted on GitLab |
+| husky hooks (opt-in) | scaffold hooks into the current JS project — only when explicitly requested |
 
 ## Step 1: Ask configuration
 
@@ -41,7 +43,7 @@ Ask the user:
 
 Let `DEST` be the chosen skills directory and `BUNDLED` be the `bundled/` directory next to this SKILL.md.
 
-For each of `grill-me`, `grill-with-docs`, `to-prd`, `to-issues`, `handoff`, `ralph-once`, `jira-ralph`, `tdd`, `prototype`, `caveman`, `nextjs-16`, `nextjs-playbooks`:
+For each of `grill-me`, `grill-with-docs`, `to-prd`, `to-issues`, `handoff`, `ralph-once`, `jira-ralph`, `tdd`, `prototype`, `caveman`, `nextjs-16`, `nextjs-playbooks`, `husky-setup`:
 
 ```bash
 mkdir -p "$DEST/<name>"
@@ -49,7 +51,7 @@ sed -e 's/{{JIRA_DOMAIN}}/<jira-domain>/g' -e 's/{{JIRA_PROJECT}}/<project-key>/
   "$BUNDLED/<name>/SKILL.md.template" > "$DEST/<name>/SKILL.md"
 ```
 
-Then copy supporting files verbatim (everything in the bundled skill dir except `SKILL.md.template`):
+Then copy supporting files verbatim (everything in the bundled skill dir except `SKILL.md.template`; `husky-setup` ships subdirs, so copy recursively):
 
 ```bash
 cp "$BUNDLED/grill-with-docs/CONTEXT-FORMAT.md" "$BUNDLED/grill-with-docs/ADR-FORMAT.md" "$DEST/grill-with-docs/"
@@ -57,7 +59,10 @@ cp "$BUNDLED"/tdd/{deep-modules,interface-design,mocking,refactoring,tests}.md "
 cp "$BUNDLED"/prototype/{LOGIC,UI}.md "$DEST/prototype/"
 cp "$BUNDLED"/nextjs-16/{v16-changes,cache-and-rendering,routing-and-data,apis-metadata-assets,config-cli-deploy,doc-map}.md "$DEST/nextjs-16/"
 cp "$BUNDLED"/nextjs-playbooks/{scaffold-route,cache-components-setup,server-actions-forms,pages-to-app,v16-upgrade}.md "$DEST/nextjs-playbooks/"
+cp -R "$BUNDLED"/husky-setup/{scaffold.mjs,hooks,configs} "$DEST/husky-setup/"
 ```
+
+To actually scaffold husky hooks into a project (only when the user asks), run the bundled script against the project root: `node "$DEST/husky-setup/scaffold.mjs" "<project-root>"` (exit 2 = not a JS git project → skip with a note).
 
 Do NOT skip a skill because a directory already exists — show the user a diff and ask overwrite/skip per conflict.
 
@@ -137,8 +142,8 @@ Do not declare success with pending auth. For each, verify → guide → re-veri
 ## Verify
 
 ```bash
-ls "$DEST" | grep -cE 'grill-me|grill-with-docs|to-prd|to-issues|handoff|ralph-once|jira-ralph|tdd|prototype|caveman|nextjs-16|nextjs-playbooks'   # expect 12
-grep -L '{{JIRA' "$DEST"/{grill-me,grill-with-docs,to-prd,to-issues,handoff,ralph-once,jira-ralph,tdd,prototype,caveman,nextjs-16,nextjs-playbooks}/SKILL.md # all listed = no leftover placeholders
+ls "$DEST" | grep -cE 'grill-me|grill-with-docs|to-prd|to-issues|handoff|ralph-once|jira-ralph|tdd|prototype|caveman|nextjs-16|nextjs-playbooks|husky-setup'   # expect 13
+grep -L '{{JIRA' "$DEST"/{grill-me,grill-with-docs,to-prd,to-issues,handoff,ralph-once,jira-ralph,tdd,prototype,caveman,nextjs-16,nextjs-playbooks,husky-setup}/SKILL.md # all listed = no leftover placeholders
 claude mcp list | grep -i atlassian
 command -v glab
 ```
