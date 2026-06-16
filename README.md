@@ -21,6 +21,10 @@ npx github:umarbashirr/skillet
 │  ◻ nextjs-16           Next.js 16 App Router expert knowledge base
 │  ◻ nextjs-playbooks    Next.js 16 build/migrate step-by-step procedures
 │  ◻ husky-setup         /husky-setup skill — scaffold git hooks in a JS project
+│  ◻ frontend-design     distinctive, intentional UI/visual design — Anthropic
+│  ◻ vercel-react-best-practices  React/Next.js performance rules — Vercel
+│  ◻ web-design-guidelines        audit UI against Web Interface Guidelines — Vercel
+│  ◻ agent-browser       browser automation CLI for agents — Vercel Labs
 
 ◆  Which integrations/CLIs to install? (uncheck to opt out)
 │  ◼ Atlassian (Jira) MCP server
@@ -71,6 +75,10 @@ Skills — canonical copy in `~/.agents/skills/` (or `./.agents/skills/` with `-
 - **nextjs-16** — Next.js 16 (App Router) expert knowledge base: SKILL router + reference docs (v16 changes, Cache Components/rendering, routing & data, Proxy/handlers/metadata/assets, config/CLI/deploy, doc map) wired to pull live docs via context7/nextjs.org
 - **nextjs-playbooks** — Next.js 16 step-by-step procedures: scaffold-route, cache-components-setup, server-actions-forms, pages-to-app, v16-upgrade
 - **husky-setup** — `/husky-setup` skill that scaffolds (or improvises on existing) husky git hooks in a JS/TS repo
+- **frontend-design** — distinctive, intentional visual design guidance for building or reshaping UI (aesthetic direction, typography, non-templated choices) — by [Anthropic](https://github.com/anthropics/skills)
+- **vercel-react-best-practices** — React/Next.js performance optimization rules (rerender, rendering, server, bundle, async) — by [Vercel](https://github.com/vercel-labs/agent-skills)
+- **web-design-guidelines** — review UI code against the Web Interface Guidelines (accessibility, UX, design audit) — by [Vercel](https://github.com/vercel-labs/agent-skills)
+- **agent-browser** — browser automation CLI for agents (navigate, fill forms, screenshot, scrape, test web apps) — by [Vercel Labs](https://github.com/vercel-labs/agent-browser); needs the `agent-browser` CLI at runtime (`npx agent-browser`)
 
 System dependencies:
 
