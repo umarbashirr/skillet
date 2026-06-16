@@ -40,7 +40,11 @@ const JIRA_SKILLS = new Set(['grill-me', 'grill-with-docs', 'to-prd', 'to-issues
 // the flat skills whose only extra files are top-level reference docs.
 const SUBDIR_SKILLS = new Set(['husky-setup']);
 const ALL = [...SKILLS.map((s) => s.value), ...DEPS.map((d) => d.value)];
-const DEFAULTS = ALL.filter((v) => !['afk-ralph', 'gh', 'husky'].includes(v)); // afk loop, gh, husky are opt-in
+// Pre-selected by default (interactive checkboxes + `--yes`). Everything else is
+// opt-in: check it in the menu or pass it via `--only`.
+const DEFAULT_SKILLS = ['grill-me', 'to-prd', 'to-issues', 'tdd', 'jira-ralph'];
+const DEFAULT_DEPS = ['jira-mcp', 'glab'];
+const DEFAULTS = [...DEFAULT_SKILLS, ...DEFAULT_DEPS];
 
 // Skills live canonically in .agents/skills (skills.sh convention) and are symlinked
 // into each selected agent. MCP is registered per agent in its own config format.
@@ -67,7 +71,7 @@ function parseArgs(argv) {
     else if (a === '--help' || a === '-h') {
       console.log(`Usage: skillet [options]
 
-Interactive by default: everything pre-selected, uncheck to opt out.
+Interactive by default: a recommended set is pre-selected; check more or uncheck.
 
 Options:
   -y, --yes              non-interactive, accept all defaults
@@ -398,9 +402,9 @@ async function main() {
     if (unknown.length) bail(`Unknown items: ${unknown.join(', ')}`);
   } else {
     const pickedSkills = await p.multiselect({
-      message: 'Which skills to install? (all selected — uncheck to opt out)',
+      message: 'Which skills to install? (recommended set pre-selected — check more or uncheck)',
       options: SKILLS,
-      initialValues: SKILLS.map((s) => s.value).filter((v) => !args.skip.has(v)),
+      initialValues: DEFAULT_SKILLS.filter((v) => !args.skip.has(v)),
       required: false,
     });
     if (p.isCancel(pickedSkills)) bail();

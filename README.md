@@ -1,26 +1,26 @@
 # skillet 🍳
 
-One command to install the whole skillet agent workflow. Everything is pre-selected — uncheck what you don't want.
+One command to install the skillet agent workflow. A recommended set is pre-selected — check anything else you want.
 
 ```bash
 npx github:umarbashirr/skillet
 ```
 
 ```
-◆  Which skills to install? (all selected — uncheck to opt out)
+◆  Which skills to install? (recommended set pre-selected — check more or uncheck)
 │  ◼ grill-me            relentless plan interview, Jira-seedable
-│  ◼ grill-with-docs     grilling that maintains CONTEXT.md/ADRs, Jira-seedable
+│  ◻ grill-with-docs     grilling that maintains CONTEXT.md/ADRs, Jira-seedable
 │  ◼ to-prd              conversation → PRD as Jira subtask
 │  ◼ to-issues           PRD → ready-for-agent Jira subtasks
-│  ◼ handoff             handoff doc + Jira handoff comments
-│  ◼ ralph-once          single Jira TDD Ralph iteration + loop scripts
+│  ◻ handoff             handoff doc + Jira handoff comments
+│  ◻ ralph-once          single Jira TDD Ralph iteration + loop scripts
 │  ◼ jira-ralph          TDD loop over Jira subtasks → draft PR
 │  ◼ tdd                 red-green-refactor TDD discipline
-│  ◼ prototype           throwaway prototypes — terminal logic or UI variations
-│  ◼ caveman             ultra-compressed responses, ~75% fewer tokens
-│  ◼ nextjs-16           Next.js 16 App Router expert knowledge base
-│  ◼ nextjs-playbooks    Next.js 16 build/migrate step-by-step procedures
-│  ◼ husky-setup         /husky-setup skill — scaffold git hooks in a JS project
+│  ◻ prototype           throwaway prototypes — terminal logic or UI variations
+│  ◻ caveman             ultra-compressed responses, ~75% fewer tokens
+│  ◻ nextjs-16           Next.js 16 App Router expert knowledge base
+│  ◻ nextjs-playbooks    Next.js 16 build/migrate step-by-step procedures
+│  ◻ husky-setup         /husky-setup skill — scaffold git hooks in a JS project
 
 ◆  Which integrations/CLIs to install? (uncheck to opt out)
 │  ◼ Atlassian (Jira) MCP server
@@ -38,8 +38,9 @@ The installer finishes every flow: skills are symlinked into each selected agent
 Non-interactive:
 
 ```bash
-npx github:umarbashirr/skillet --yes                          # everything, all detected agents
-npx github:umarbashirr/skillet --yes --skip glab,handoff      # opt out of items
+npx github:umarbashirr/skillet --yes                          # recommended set, Claude
+npx github:umarbashirr/skillet --only caveman,husky-setup     # install extras beyond the default set
+npx github:umarbashirr/skillet --yes --skip glab              # default set minus an item
 npx github:umarbashirr/skillet --only grill-me,to-prd --jira-project AB
 npx github:umarbashirr/skillet --yes --agents claude,cursor   # target specific agents
 ```
