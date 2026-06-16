@@ -26,16 +26,21 @@ const SKILLS = [
   { value: 'caveman', label: 'caveman', hint: 'ultra-compressed responses, ~75% fewer tokens' },
   { value: 'nextjs-16', label: 'nextjs-16', hint: 'Next.js 16 App Router expert knowledge base' },
   { value: 'nextjs-playbooks', label: 'nextjs-playbooks', hint: 'Next.js 16 step-by-step build/migrate procedures' },
+  { value: 'husky-setup', label: 'husky-setup', hint: 'scaffold husky git hooks: lint/format/secret/typecheck/size gates + commit standards' },
 ];
 const DEPS = [
   { value: 'jira-mcp', label: 'Atlassian (Jira) MCP server', hint: 'registered in every selected agent' },
   { value: 'gh', label: 'gh CLI', hint: 'GitHub CLI — NOT selected by default' },
   { value: 'glab', label: 'glab CLI', hint: 'GitLab CLI' },
+  { value: 'husky', label: 'husky git hooks', hint: 'scaffold hooks into THIS project (JS only) — NOT selected by default' },
   { value: 'afk-ralph', label: 'afk-ralph.sh', hint: 'autonomous Docker loop — NOT selected by default' },
 ];
 const JIRA_SKILLS = new Set(['grill-me', 'grill-with-docs', 'to-prd', 'to-issues', 'handoff', 'ralph-once', 'jira-ralph']);
+// husky-setup has supporting subdirs (hooks/, configs/) copied verbatim, unlike
+// the flat skills whose only extra files are top-level reference docs.
+const SUBDIR_SKILLS = new Set(['husky-setup']);
 const ALL = [...SKILLS.map((s) => s.value), ...DEPS.map((d) => d.value)];
-const DEFAULTS = ALL.filter((v) => !['afk-ralph', 'gh'].includes(v)); // afk loop and gh are opt-in
+const DEFAULTS = ALL.filter((v) => !['afk-ralph', 'gh', 'husky'].includes(v)); // afk loop, gh, husky are opt-in
 
 // Skills live canonically in .agents/skills (skills.sh convention) and are symlinked
 // into each selected agent. MCP is registered per agent in its own config format.
@@ -502,10 +507,14 @@ async function main() {
       .replaceAll('{{JIRA_PROJECT}}', project);
     fs.writeFileSync(path.join(target, 'SKILL.md'), rendered);
 
-    // supporting files (everything else in the bundled dir, verbatim)
-    for (const f of fs.readdirSync(path.join(BUNDLED, name))) {
-      if (f === 'SKILL.md.template') continue;
-      fs.copyFileSync(path.join(BUNDLED, name, f), path.join(target, f));
+    // supporting files (everything else in the bundled dir, verbatim) —
+    // recurse into subdirs for skills that ship them (e.g. husky-setup).
+    for (const f of fs.readdirSync(path.join(BUNDLED, name), { withFileTypes: true })) {
+      if (f.name === 'SKILL.md.template') continue;
+      const src = path.join(BUNDLED, name, f.name);
+      const dst = path.join(target, f.name);
+      if (f.isDirectory()) fs.cpSync(src, dst, { recursive: true });
+      else fs.copyFileSync(src, dst);
     }
 
     // symlink the canonical copy into every selected agent
@@ -545,6 +554,18 @@ async function main() {
     }
     const progress = path.join(process.cwd(), 'progress.txt');
     if (!fs.existsSync(progress)) fs.writeFileSync(progress, '');
+  }
+
+  // --- husky hooks (scaffold into the current project) ---
+  const huskyResults = [];
+  if (selected.includes('husky')) {
+    const scaffold = path.join(BUNDLED, 'husky-setup', 'scaffold.mjs');
+    p.note('Scaffolding husky hooks into the current project — installs devDeps and may take a moment.', 'husky');
+    // stdio inherited so the dependency install and summary stream live.
+    const r = spawnSync('node', [scaffold, process.cwd()], { stdio: 'inherit', shell: WINSHELL });
+    if (r.status === 0) huskyResults.push(`husky: hooks scaffolded in ${process.cwd()}`);
+    else if (r.status === 2) huskyResults.push('husky: SKIPPED — current dir is not a JS git project (run /husky-setup inside a Node repo)');
+    else huskyResults.push('husky: FAILED — see output above (often a dependency-install error; re-run inside the project)');
   }
 
   // --- Atlassian MCP per agent ---
@@ -685,7 +706,7 @@ async function main() {
   if (skipped.length) lines.push(`Skipped (already present): ${skipped.join(', ')}`);
   if (linkSkipped.length) lines.push(`⚠ NOT symlinked (real dir in the way, no overwrite): ${linkSkipped.join(', ')}`);
   if (wantsJira) lines.push(`Jira: ${domain} / ${project}`);
-  lines.push(...mcpResults, ...depResults, ...authResults);
+  lines.push(...mcpResults, ...depResults, ...huskyResults, ...authResults);
   p.note(lines.join('\n'), 'Installed');
 
   const pending = authResults.filter((l) => /PENDING|SKIPPED|not verified/.test(l));

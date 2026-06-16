@@ -20,11 +20,13 @@ npx github:umarbashirr/skillet
 │  ◼ caveman             ultra-compressed responses, ~75% fewer tokens
 │  ◼ nextjs-16           Next.js 16 App Router expert knowledge base
 │  ◼ nextjs-playbooks    Next.js 16 build/migrate step-by-step procedures
+│  ◼ husky-setup         /husky-setup skill — scaffold git hooks in a JS project
 
 ◆  Which integrations/CLIs to install? (uncheck to opt out)
 │  ◼ Atlassian (Jira) MCP server
 │  ◻ gh CLI              opt-in, unchecked by default
 │  ◼ glab CLI
+│  ◻ husky git hooks     scaffold hooks into THIS project (JS only) — opt-in
 │  ◻ afk-ralph.sh        autonomous Docker loop — opt-in, unchecked by default
 
 ◆  Which agents to install for? (Claude pre-selected)
@@ -67,6 +69,7 @@ Skills — canonical copy in `~/.agents/skills/` (or `./.agents/skills/` with `-
 - **caveman** — ultra-compressed response mode (~75% fewer tokens, full technical accuracy)
 - **nextjs-16** — Next.js 16 (App Router) expert knowledge base: SKILL router + reference docs (v16 changes, Cache Components/rendering, routing & data, Proxy/handlers/metadata/assets, config/CLI/deploy, doc map) wired to pull live docs via context7/nextjs.org
 - **nextjs-playbooks** — Next.js 16 step-by-step procedures: scaffold-route, cache-components-setup, server-actions-forms, pages-to-app, v16-upgrade
+- **husky-setup** — `/husky-setup` skill that scaffolds (or improvises on existing) husky git hooks in a JS/TS repo
 
 System dependencies:
 
@@ -80,6 +83,12 @@ System dependencies:
   | Antigravity | `~/.gemini/config/mcp_config.json` | `mcp-remote` wrapper, OAuth on first use |
 - **gh** — GitHub CLI (+ `gh auth login` flow)
 - **glab** — GitLab CLI (+ `glab auth login` flow)
+- **husky git hooks** (opt-in) — scaffolds hooks into the **current** JS project (detected via `package.json` at the git root; skipped with a note otherwise). Installs `husky`, `lint-staged`, `commitlint` + config-conventional, and `secretlint` as devDeps, then wires:
+  - **pre-commit** — `lint-staged` runs the detected linter/formatter (eslint/biome/prettier) + `secretlint` secret scan on staged files
+  - **commit-msg** — `commitlint` enforces Conventional Commits
+  - **pre-push** — typecheck (project script, else `tsc --noEmit`) + size gates: branch diff ≤ **1000** added code lines and each test file ≤ **2000** lines (lockfiles, docs, config, assets, snapshots excluded; tests excluded from the 1000)
+
+  Check logic lives in committed `.skillet/hooks/*.mjs`; each `.husky` hook holds one skillet-managed block, so re-runs and your own hook lines coexist. Files are left unstaged for review. Secret scanning is local and bypassable with `--no-verify` — for a hard guarantee, add server-side scanning in CI. Tune via `commitlint.config.cjs`, `.lintstagedrc.json`, `.secretlintrc.json`, or env (`SKILLET_MAX_PROD`, `SKILLET_MAX_TEST_FILE`, `SKILLET_BASE_BRANCH`).
 
 The installer asks for your Jira domain and project key and bakes them into the skills (defaults: `xcelore.atlassian.net` / `XW`).
 
